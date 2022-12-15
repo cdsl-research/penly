@@ -159,12 +159,17 @@ def init_network():
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
     
-    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+    
     if labConnectedFlag == True:
+        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
         url = "http://192.168.100.236:5000/init_network_recieve"
         sendText = "connected"
         httpPost(url,sendText)
-
+    elif labConnectedFlag == False:
+        # ESP32へ接続して色々と処理をする
+        pass
+    else:
+        print("処理せず")
 def main():
     
     #execfile("autowifi.py")
