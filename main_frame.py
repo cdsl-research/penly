@@ -30,7 +30,7 @@ def activate_AP():
     global AP_SSID
     global IP
     global ap
-    
+    print("\n --- {アクセスポイントの起動シークエンス} --- ")
     ap = network.WLAN(network.AP_IF)
     AP_SSID = str(ap.config("essid"))
     print("AP_SSID : ", AP_SSID)
@@ -54,12 +54,92 @@ def activate_AP():
     print("(ip,netmask,gw,dns)=" + str(ap.ifconfig()))
     ap.active(True)
 
+# 研究室Wi-Fiに接続する場合
+def connect_wifi(ssid, passkey, timeout=10):
+    count = 0
+    while count < 3:
+        try:
+            wifi.connect(ssid, passkey)
+            break
+        except:
+            utime.sleep(3)
+            count += 1
+    while not wifi.isconnected() and timeout > 0:
+        print('.')
+        utime.sleep(1)
+        timeout -= 1
+
+    if wifi.isconnected():
+        p2.on()
+        print(ssid, 'Connected')
+        webrepl.start(password='cdsl')
+        return wifi
+    else:
+        print(ssid, 'Connection failed!')
+        return ''
+
+# ESPに接続する場合(PASSなし)
+def esp_connect_wifi(ssid, timeout=10):
+    count = 0
+    wifi = network.WLAN(network.STA_IF)
+    wifi.active(True)
+    
+    while count < 3:
+        try:
+            wifi.connect(ssid)
+            break
+        except:
+            utime.sleep(3)
+            count += 1
+    while not wifi.isconnected() and timeout > 0:
+        print('.')
+        utime.sleep(1)
+        timeout -= 1
+
+    if wifi.isconnected():
+        p2.on()
+        print(ssid, 'Connected')
+        print(wifi.ifconfig())
+        return wifi
+    else:
+        print(ssid, 'Connection failed!')
+        return ''
+
+
+# Wi-Fiスキャン
+# 研究室Wi-Fiに繋げられるなら繋げる
+# 繋げられない場合はESP32を探す
+def wifi_scan():
+    print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
+    global wifi
+    wifiList = wifi.scan()
+    wifiSsidList = list()
+    for wl in wifiList:
+        wifiSsidList.append(wl[0].decode("utf-8"))
+    print(wifiSsidList)
+    if LAB_SSID in wifiSsidList:
+        # 研究室へ接続
+        print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
+        connect_wifi(LAB_SSID,SSID_PASS)
+    elif "ESP_7B0B85" in wifiSsidList:
+        # ESP32へ接続
+        print("EPS32のSSID検知 ---> 接続処理開始")
+        esp_connect_wifi("ESP_7B0B85")
+    else:
+        print("接続できるネットワーク環境がありません")
+    
+
 def init_network():
+    # まずはアクセスポイントの起動
     activate_AP()
+    
+    # 研究室Wi-Fiに繋げられるなら繋げる
+    # 繋げられない場合はESP32を探す
+    wifi_scan()
 
 def main():
     
-    execfile("autowifi.py")
+    #execfile("autowifi.py")
     
     # print(" --- キャッシュデータ削除処理 ---")
     # deleteCashFile()
