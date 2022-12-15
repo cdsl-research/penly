@@ -14,6 +14,8 @@ import random
 AP_SSID = ""
 # 自身のIPアドレス
 IP = ""
+# APの初期化
+ap = network.WLAN(network.AP_IF)
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -27,6 +29,7 @@ def activate_AP():
     global wifi
     global AP_SSID
     global IP
+    global ap
     
     ap = network.WLAN(network.AP_IF)
     AP_SSID = str(ap.config("essid"))
@@ -36,12 +39,28 @@ def activate_AP():
     randomAddress = random.randrange(5,254)
     IP = "192.168." + str(randomAddress) + ".1"
     print(f"設定されるアクセスポイントIP : {IP}")
+    count_local = 0
+    while count_local < 100:
+        try:
+            ap.config()
+            break
+        except:
+            count_local += 1
+            print('.', end="")
+    # IP,'255.255.255.0',IP,'8.8.8.8'
+    print("\n")
+    ap.ifconfig((IP, '255.255.255.0', IP, '8.8.8.8'))
+    red.on()
+    print("(ip,netmask,gw,dns)=" + str(ap.ifconfig()))
+    ap.active(True)
 
 def init_network():
     activate_AP()
-    
 
-def main():    
+def main():
+    
+    execfile("autowifi.py")
+    
     # print(" --- キャッシュデータ削除処理 ---")
     # deleteCashFile()
     
