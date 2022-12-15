@@ -29,54 +29,51 @@ wifi.active(True)
 
 
 def wifiscan():
-    global AP_ROOT
     global wifi
-    global CHECK_CONNECT_ESP
-    wifiList = wifi.scan()
-    wifiAPList = []
-    wifiRSSIList = []
-    wifiAPDict = {}
-    for wl in wifiList:
+    wifi_list = wifi.scan()
+    wifi_ap_dict = {}
+    for wl in wifi_list:
         if wl[0].decode("utf-8") != "":
-            wifiAPDict.update([(wl[0].decode("utf-8"), int(wl[3]))])
-
-    if any(wifiAPDict) == False:
+            wifi_ap_dict[wl[0].decode("utf-8")] = int(wl[3])
+    if not wifi_ap_dict:
         return ""
-
-    apCount = 0
-    wifiAPDictTrue = {}
-    wifiESPDictTrue = {}
-    ApInList = False
-    for ak, av in wifiAPDict.items():
-        if ak in SSID_NAME_AUTO:
-            ApInList = True
-            apCount += 1
-            wifiAPDictTrue.update([(ak, av)])
-
-    if ApInList == True:
+    wifi_ap_dict_filtered = {
+        k: v
+        for k, v in wifi_ap_dict.items()
+        if k in SSID_NAME_AUTO
+    }
+    if wifi_ap_dict_filtered:
+        global AP_ROOT
+        global COST
         AP_ROOT = 1
         COST = 1
-        wifiAPDictTrueSorted = sorted(
-            wifiAPDictTrue.items(), key=lambda x: x[1], reverse=True)
+
+        strongest_ap = max(wifi_ap_dict_filtered, key=wifi_ap_dict_filtered.get)
+
         print("##### ESP以外のWi-Fiアクセスポイントのリストアップ #####")
-        print(wifiAPDictTrueSorted)
+        print(wifi_ap_dict_filtered)
 
-        return wifiAPDictTrueSorted[0][0]
+        return strongest_ap
+
     else:
+        global AP_ROOT
         AP_ROOT = 0
-        for ak, av in wifiAPDict.items():
-            if ak in esp_list:
-                wifiESPDictTrue.update([(ak, av)])
 
-        wifiESPDictTrueSorted = sorted(
-            wifiESPDictTrue.items(), key=lambda x: x[1], reverse=True)
+        wifi_esp_dict_filtered = {
+            k: v
+            for k, v in wifi_ap_dict.items()
+            if k in esp_list
+        }
+
+        strongest_esp = max(wifi_esp_dict_filtered, key=wifi_esp_dict_filtered.get)
+
         print("##### ESPのセットアップ #####")
-        print(wifiESPDictTrueSorted)
+        print(wifi_esp_dict_filtered)
 
-        for ak, av in wifiESPDictTrueSorted.items():
-            CHECK_CONNECT_ESP.update([(ak, 0)])
+        global CHECK_CONNECT_ESP
+        CHECK_CONNECT_ESP = {k: 0 for k in wifi_esp_dict_filtered.keys()}
 
-        return wifiESPDictTrueSorted[0][0]
+        return strongest_esp
 
 
 # APに接続する場合
