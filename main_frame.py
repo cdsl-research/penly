@@ -16,6 +16,8 @@ AP_SSID = ""
 IP = ""
 # APの初期化
 ap = network.WLAN(network.AP_IF)
+# 受け取りポート
+PORT = 8080
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -151,6 +153,24 @@ def httpPost(url,sendText):
     res.close()
     blue.off()
 
+def received_socket():
+    listenSocket = socket.socket()
+    listenSocket.bind(('', PORT))
+    listenSocket.listen(5)
+    listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    print('tcp waiting...')
+    print("accepting.....ソケット通信待機中......")
+    conn, addr = listenSocket.accept()
+    print(addr, "から接続されました")
+    conn.close()
+    green.on()
+    addr = addr[0]
+    data = conn.recv(1024)
+    str_data = data.decode()
+    print("受信データ： {str_data}")
+    
+    green.off()
+
 def init_network():
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
@@ -165,7 +185,8 @@ def init_network():
         
         # 研究室に通知したらアクセスポイントの起動
         activate_AP()
-        
+        # ソケット受け取り準備(threadで・・・)
+        _thread.start_new_thread(received_socket,())
     elif labConnectedFlag == False:
         # ESP32へ接続して色々と処理をする
         pass
