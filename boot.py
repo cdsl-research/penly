@@ -25,6 +25,11 @@ i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 
 ID = machine.unique_id()
 
+LAB_SSID = "CDSL-A910-11n"
+
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+
 ###### Wi-Fi各種設定 #####
 espIpList = ["192.168.100.87","192.168.100.164","192.168.100.218","192.168.100.82","192.168.100.228"]
 espSsidList = ["ESP_7B0B85", "ESP_27B055"]

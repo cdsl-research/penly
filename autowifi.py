@@ -9,6 +9,7 @@ SSID_NAME_AUTO = ["CDSL-A910-11n"]
 SSID_PASS_AUTO = {"CDSL-A910-11n": SSID_PASS}
 
 
+
 N = ''
 
 p2 = Pin(2, Pin.OUT)
