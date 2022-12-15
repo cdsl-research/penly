@@ -33,18 +33,27 @@ espSsidList = ["ESP_7B0B85", "ESP_27B055"]
 print("boot is ok")
 utime.sleep(1)
 
-try:
-    execfile("ina219.py")
-    execfile("ina219_get.py")
-    execfile("ctime.py")
-    # autowifi.pyはap.pyをコメントアウトしている代わりに入れている
-    execfile("autowifi.py")
-    #execfile("ap.py")
-except KeyboardInterrupt:
-    print("KeyBoardInterrupt Ctrl + C")
-except:
-    p2.off()
-    blue.off()
-    red.off()
-    green.off()
-    machine.reset()
+
+execfile("ina219.py")
+execfile("ina219_get.py")
+execfile("ctime.py")
+# autowifi.pyはap.pyをコメントアウトしている代わりに入れている
+# execfile("autowifi.py")
+execfile("main_frame.py")
+
+# try:
+#     execfile("ina219.py")
+#     execfile("ina219_get.py")
+#     execfile("ctime.py")
+#     # autowifi.pyはap.pyをコメントアウトしている代わりに入れている
+#     # execfile("autowifi.py")
+#     execfile("main_flame.py")
+# except KeyboardInterrupt:
+#     print("KeyBoardInterrupt Ctrl + C")
+# except Exception as e:
+#     print(e)
+#     p2.off()
+#     blue.off()
+#     red.off()
+#     green.off()
+#     machine.reset()
