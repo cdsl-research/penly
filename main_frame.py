@@ -121,13 +121,35 @@ def wifi_scan():
         # 研究室へ接続
         print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
         connect_wifi(LAB_SSID,SSID_PASS)
+        return True
     elif "ESP_7B0B85" in wifiSsidList:
         # ESP32へ接続
         print("EPS32のSSID検知 ---> 接続処理開始")
         esp_connect_wifi("ESP_7B0B85")
+        return False
     else:
         print("接続できるネットワーク環境がありません")
+        return 0
+
+# サーバにHTTPリクエストを送信
+def httpPost(url,sendText):
+    blue.on()
+    print(f"サーバへ送信するデータ： {sendText}")
     
+    sendData = {
+        "data" : sendText,
+        "espid" : AP_SSID
+    }
+    
+    url += "?"
+    
+    for sdk,sdv in sendData.items():
+        url += sdk + "=" + sdv + "&"
+    print(url)
+    res = urequests.get(url)
+    print("サーバからのステータスコード：", res.status_code)
+    res.close()
+    blue.off()
 
 def init_network():
     # まずはアクセスポイントの起動
@@ -135,7 +157,13 @@ def init_network():
     
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
-    wifi_scan()
+    labConnectedFlag = wifi_scan()
+    
+    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+    if labConnectedFlag == True:
+        url = "http://192.168.100.236:5000/init_network_recieve"
+        sendText = "connected"
+        httpPost(url,sendText)
 
 def main():
     
