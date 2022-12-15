@@ -13,6 +13,7 @@ execfile("id.py")
 
 SET_AP = True
 
+
 red = Pin(13, Pin.OUT)
 blue = Pin(4, Pin.OUT)
 green = Pin(5, Pin.OUT)
@@ -36,7 +37,9 @@ try:
     execfile("ina219.py")
     execfile("ina219_get.py")
     execfile("ctime.py")
-    execfile("ap.py")
+    # autowifi.pyはap.pyをコメントアウトしている代わりに入れている
+    execfile("autowifi.py")
+    #execfile("ap.py")
 except KeyboardInterrupt:
     print("KeyBoardInterrupt Ctrl + C")
 except:
