@@ -152,9 +152,6 @@ def httpPost(url,sendText):
     blue.off()
 
 def init_network():
-    # まずはアクセスポイントの起動
-    activate_AP()
-    
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
@@ -165,6 +162,10 @@ def init_network():
         url = "http://192.168.100.236:5000/init_network_recieve"
         sendText = "connected"
         httpPost(url,sendText)
+        
+        # 研究室に通知したらアクセスポイントの起動
+        activate_AP()
+        
     elif labConnectedFlag == False:
         # ESP32へ接続して色々と処理をする
         pass
