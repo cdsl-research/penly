@@ -26,9 +26,9 @@ READ_FILE_COUNTER = 0
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
     fileList = os.listdir()
-    for fileNameOne in fileList:
-        if "recv" in fileNameOne:
-            os.remove(fileNameOne)
+    for fl in fileList:
+        if "recv" in fl:
+            os.remove(fl)
 
 # APを起動する際はこの関数を実行すること
 def activate_AP():
@@ -157,7 +157,7 @@ def readRecvFile():
     global READ_FILE_COUNTER
     fileList = os.listdir()
     
-    fileName = "recv" + str(READ_FILE_COUNT) + ".txt"
+    fileName = "recv" + str(READ_FILE_COUNTER) + ".txt"
     iText = "読み込みファイル名：" + fileName
     print("\r"+str(iText),end="")
     
@@ -178,6 +178,19 @@ def readRecvFile():
                 return data
     else:
         return 0
+
+# 受信データの読み込んで処理をする
+def processRecv():
+    while True:
+        fileData = readRecvFile()
+        if fileData == 0:
+            utime.sleep(0.5)
+        else:
+            fileDataSplit = fileData.split("?")
+            fileData = fileDataSplit[0]
+            addr = fileDataSplit[1]
+            print(f"\処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+            utime.sleep(0.5)
 
 
 # サーバにHTTPリクエストを送信
@@ -212,13 +225,14 @@ def received_socket():
     print('tcp waiting...')
     print("accepting.....ソケット通信待機中......")
     conn, addr = listenSocket.accept()
-    print(addr, "から接続されました")
     conn.close()
     green.on()
     addr = addr[0]
     data = conn.recv(1024)
     str_data = data.decode()
-    print("受信データ： {str_data}")
+    print(f"{addr} より接続 ---> 受信データ : {str_data}")
+    str_data += "?" + addr
+    writeRecvFile(str_data)
     green.off()
 
 def init_network():
@@ -237,6 +251,7 @@ def init_network():
         activate_AP()
         # ソケット受け取り準備(threadで・・・)
         _thread.start_new_thread(received_socket,())
+        _thread.start_new_thread(processRecv,())
     elif labConnectedFlag == False:
         # ESP32へ接続して色々と処理をする
         pass
@@ -246,8 +261,8 @@ def main():
     
     #execfile("autowifi.py")
     
-    # print(" --- キャッシュデータ削除処理 ---")
-    # deleteCashFile()
+    print(" --- キャッシュデータ削除処理 ---")
+    deleteCashFile()
     
     # 初回のトポロジー設定
     init_network()
