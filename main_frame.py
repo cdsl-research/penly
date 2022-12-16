@@ -135,8 +135,12 @@ def wifi_scan():
 
 # サーバにHTTPリクエストを送信
 def httpPost(url,sendText):
+    global AP_SSID
     blue.on()
     print(f"サーバへ送信するデータ： {sendText}")
+    
+    # 再度SSIDの取得
+    AP_SSID = str(ap.config("essid"))
     
     sendData = {
         "data" : sendText,
@@ -168,7 +172,6 @@ def received_socket():
     data = conn.recv(1024)
     str_data = data.decode()
     print("受信データ： {str_data}")
-    
     green.off()
 
 def init_network():
