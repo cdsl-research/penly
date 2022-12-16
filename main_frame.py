@@ -130,6 +130,8 @@ def wifi_scan():
         connect_wifi(LAB_SSID,SSID_PASS)
         return True
     else:
+        # 研究室に繋げないと分かったらとにあえずAP起動する
+        activate_AP()
         common_el = list()
         for el in wifiSsidList:
             if el in ENABLE_CONNECT_ESP32:
@@ -195,8 +197,50 @@ def processRecv():
             fileData = fileDataSplit[0]
             addr = fileDataSplit[1]
             print(f"\処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+            
+            fileDataProcessData = fileData.split("&")
+            recvEsp32Id = ""
+            for fspd in fileDataProcessData:
+                fspdSplit = fspd.split("=")
+                proKey = fspdSplit[0]
+                proValue = fspdSplit[1]
+                print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
+                if proKey == "id":
+                    recvEsp32Id = proValue
+                    print(f"受信ESP32のID == {proValue}")
+                if proKey == "command":
+                    if proValue == "resist":
+                        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                        url = "http://192.168.100.236:5000/init_network_recieve"
+                        sendText = "connected"
+                        resist_ESP32_httpPost(url,sendText,recvEsp32Id)
             utime.sleep(0.5)
 
+
+# サーバへ転送用
+def resist_ESP32_httpPost(url,sendText,transfer_espid):
+    global AP_SSID
+    if AP_SSID != "":
+        # 再度SSIDの取得
+        AP_SSID = str(ap.config("essid"))
+    blue.on()
+    print(f"転送元ESP32 : {transfer_espid}  ---> サーバへ送信するデータ： {sendText}")
+        
+    sendData = {
+        "data" : sendText,
+        "espid" : AP_SSID,
+        "transfer_espid" : transfer_espid
+    }
+    
+    url += "?"
+    
+    for sdk,sdv in sendData.items():
+        url += sdk + "=" + sdv + "&"
+    print(url)
+    res = urequests.get(url)
+    print("サーバからのステータスコード：", res.status_code)
+    res.close()
+    blue.off()
 
 # サーバにHTTPリクエストを送信
 def httpPost(url,sendText):
@@ -204,8 +248,9 @@ def httpPost(url,sendText):
     blue.on()
     print(f"サーバへ送信するデータ： {sendText}")
     
-    # 再度SSIDの取得
-    AP_SSID = str(ap.config("essid"))
+    if AP_SSID != "":
+        # 再度SSIDの取得
+        AP_SSID = str(ap.config("essid"))
     
     sendData = {
         "data" : sendText,
@@ -252,6 +297,7 @@ def received_socket():
         green.off()
 
 def init_network():
+    global AP_SSID
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
@@ -269,6 +315,9 @@ def init_network():
         _thread.start_new_thread(processRecv,())
     elif labConnectedFlag == False:
         # ESP32へ接続して登録処理を行う
+        # 再度SSIDの取得
+        if AP_SSID != "":
+            AP_SSID = str(ap.config("essid"))
         sendIpAdress = wifi.ifconfig()[2]
         sendData = f"id={AP_SSID}&command=resist"
         sendSocket(sendIpAdress,sendData)
