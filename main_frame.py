@@ -165,7 +165,6 @@ def readRecvFile():
     
     fileName = "recv" + str(READ_FILE_COUNTER) + ".txt"
     iText = "読み込みファイル名：" + fileName
-    print("\r"+str(iText),end="")
     
     if fileName in fileList:
             print("\n--- 受信ファイルを検知 == 読み込みスタート ---")
@@ -179,7 +178,7 @@ def readRecvFile():
                 # FILE_COUNTを読み込んだら該当ファイルを削除する
                 os.remove(fileName)
                 # ファイルを生成したらFILE_COUNTを１上げる
-                READ_FILE_COUNT += 1
+                READ_FILE_COUNTER += 1
                 print(f"読み込みファイル : {data}")
                 return data
     else:
@@ -223,23 +222,34 @@ def httpPost(url,sendText):
     res.close()
     blue.off()
 
+def sendSocket(ipAdress,sendData):
+    print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
+    blue.on()
+    s = socket.socket()
+    s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
+    s.send(sendData)
+    s.close()
+    blue.off()
+    print("Sending Complete!")
+    
 def received_socket():
     listenSocket = socket.socket()
     listenSocket.bind(('', PORT))
     listenSocket.listen(5)
     listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     print('tcp waiting...')
-    print("accepting.....ソケット通信待機中......")
-    conn, addr = listenSocket.accept()
-    conn.close()
-    green.on()
-    addr = addr[0]
-    data = conn.recv(1024)
-    str_data = data.decode()
-    print(f"{addr} より接続 ---> 受信データ : {str_data}")
-    str_data += "?" + addr
-    writeRecvFile(str_data)
-    green.off()
+    while True:
+        print("accepting.....ソケット通信待機中......")
+        conn, addr = listenSocket.accept()
+        green.on()
+        addr = addr[0]
+        data = conn.recv(1024)
+        conn.close()
+        str_data = data.decode()
+        print(f"{addr} より接続 ---> 受信データ : {str_data}")
+        str_data += "?" + addr
+        writeRecvFile(str_data)
+        green.off()
 
 def init_network():
     # 研究室Wi-Fiに繋げられるなら繋げる
@@ -258,8 +268,10 @@ def init_network():
         _thread.start_new_thread(received_socket,())
         _thread.start_new_thread(processRecv,())
     elif labConnectedFlag == False:
-        # ESP32へ接続して色々と処理をする
-        pass
+        # ESP32へ接続して登録処理を行う
+        sendIpAdress = wifi.ifconfig()[2]
+        sendData = f"id={AP_SSID}&command=resist"
+        sendSocket(sendIpAdress,sendData)
     else:
         print("処理せず")
 def main():
