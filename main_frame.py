@@ -176,6 +176,8 @@ def readRecvFile():
                 READ_FILE_COUNT += 1
                 print(f"読み込みファイル : {data}")
                 return data
+    else:
+        return 0
 
 
 # サーバにHTTPリクエストを送信
