@@ -115,6 +115,7 @@ def esp_connect_wifi(ssid, timeout=10):
 # Wi-Fiスキャン
 # 研究室Wi-Fiに繋げられるなら繋げる
 # 繋げられない場合はESP32を探す
+ENABLE_CONNECT_ESP32 = ["ESP_27B055","ESP_27B055"]
 def wifi_scan():
     print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
     global wifi
@@ -123,19 +124,24 @@ def wifi_scan():
     for wl in wifiList:
         wifiSsidList.append(wl[0].decode("utf-8"))
     print(wifiSsidList)
-    if LAB_SSID in wifiSsidList:
+    if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
         # 研究室へ接続
         print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
         connect_wifi(LAB_SSID,SSID_PASS)
         return True
-    elif "ESP_7B0B85" in wifiSsidList:
-        # ESP32へ接続
-        print("EPS32のSSID検知 ---> 接続処理開始")
-        esp_connect_wifi("ESP_7B0B85")
-        return False
     else:
-        print("接続できるネットワーク環境がありません")
-        return 0
+        common_el = list()
+        for el in wifiSsidList:
+            if el in ENABLE_CONNECT_ESP32:
+                common_el.append(el)
+                print(f"接続可能なESP32を検知 ---> {el}")
+        
+        if common_el:
+            esp_connect_wifi(common_el[0])
+            return False
+        else:
+            print("接続できるネットワーク環境がありません")
+            return 0
 
 
 
@@ -240,7 +246,6 @@ def init_network():
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
     
-    
     if labConnectedFlag == True:
         # 研究室Wi-Fiに接続している場合はサーバへ通知をする
         url = "http://192.168.100.236:5000/init_network_recieve"
@@ -260,7 +265,6 @@ def init_network():
 def main():
     
     #execfile("autowifi.py")
-    
     print(" --- キャッシュデータ削除処理 ---")
     deleteCashFile()
     
