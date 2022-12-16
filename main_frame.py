@@ -18,6 +18,10 @@ IP = ""
 ap = network.WLAN(network.AP_IF)
 # 受け取りポート
 PORT = 8080
+# 書き込みファイルカウンター
+WRITE_FILE_COUNTER = 0
+# 読み込みファイルカウンター
+READ_FILE_COUNTER = 0
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -132,6 +136,47 @@ def wifi_scan():
     else:
         print("接続できるネットワーク環境がありません")
         return 0
+
+
+
+#### ソケット受信時のキューシステム ####
+def writeRecvFile(writeData):
+    global WRITE_FILE_COUNTER
+    fileName = "recv" + str(WRITE_FILE_COUNTER) + ".txt"
+    print(f"書き込みデータ : {writeData}  ---> 書き込みファイル名 : {fileName}")
+    try:
+        file = open(fileName,"w")
+        file.write(writeData)
+    except Exception as e:
+        print(f"writeRecvFile ERROR : {e}")
+    finally:
+        file.close()
+        WRITE_FILE_COUNTER += 1
+
+def readRecvFile():
+    global READ_FILE_COUNTER
+    fileList = os.listdir()
+    
+    fileName = "recv" + str(READ_FILE_COUNT) + ".txt"
+    iText = "読み込みファイル名：" + fileName
+    print("\r"+str(iText),end="")
+    
+    if fileName in fileList:
+            print("\n--- 受信ファイルを検知 == 読み込みスタート ---")
+            try:
+                file = open(fileName)
+                data = file.read()
+            except Exception as e:
+                print(f"writeRecvFile ERROR : {e}")
+            finally:
+                file.close()
+                # FILE_COUNTを読み込んだら該当ファイルを削除する
+                os.remove(fileName)
+                # ファイルを生成したらFILE_COUNTを１上げる
+                READ_FILE_COUNT += 1
+                print(f"読み込みファイル : {data}")
+                return data
+
 
 # サーバにHTTPリクエストを送信
 def httpPost(url,sendText):
