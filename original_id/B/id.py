@@ -1,1 +1,2 @@
 ESP32_ID = "B"
+DEFAULT_LAB_CONNECT = False
