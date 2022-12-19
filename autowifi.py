@@ -127,6 +127,9 @@ def esp_connect_wifi(ssid, timeout=10):
         return ''
 
 
+# 最初に切断処理をしちゃう
+if wifi.ifconfig()[0].split(".")[0] == "192":
+    wifi.disconnect()
 while True:
     wifiName = wifiscan()
     if "CDSL" in wifiName:
