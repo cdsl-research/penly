@@ -210,7 +210,8 @@ def processRecv():
         
         fileDataProcessData = fileData.split("&")
         recvEsp32Id = ""
-        command = None
+        command_origin = None
+        id_origin = ""
         for fspd in fileDataProcessData:
             fspdSplit = fspd.split("=")
             proKey = fspdSplit[0]
@@ -219,17 +220,36 @@ def processRecv():
             if proKey == "id":
                 recvEsp32Id = proValue
                 print(f"受信ESP32のID == {proValue}")
-            if proKey == "command":
-                command = proValue
+            if proKey == "command_origin":
+                command_origin = proValue
+            if proKey == "id_origin":
+                id_origin = proValue
         
-        if command == "resist":
+        if command_origin == "resist":
             REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
-            # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-            url = "http://192.168.100.236:5000/init_network_recieve"
-            sendText = "connected"
-            resist_ESP32_httpPost(url,sendText,recvEsp32Id)
-            update_connected_from_esp32()
-            check_connected_from_esp32()
+            if DEFAULT_LAB_CONNECT:
+                # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                url = "http://192.168.100.236:5000/init_network_recieve"
+                sendText = "connected"
+                resist_ESP32_httpPost(url,sendText,id_origin)
+                update_connected_from_esp32()
+                check_connected_from_esp32()
+            else:
+                sendIpAdress = wifi.ifconfig()[2]
+                # id = 送り元
+                # command_origin = resist (登録)
+                # sub_com = サブコマンド
+                # id_origin = 送り元の紀元
+                # route = たどってきた経路
+                sendDataIndex = {
+                    "command_origin" : "resist",
+                    "sub_com" : "transfer",
+                    "id_origin" : id_origin
+                }
+                sendText = f"id={AP_SSID}"
+                for k ,v in sendDataIndex.items(): 
+                    sendText += f"&{k}={v}"
+                sendSocket(sendIpAdress,sendText)
         utime.sleep(0.5)
 
 
@@ -426,7 +446,7 @@ def init_network():
                     ap = network.WLAN(network.AP_IF)
                     AP_SSID = str(ap.config("essid"))
             sendIpAdress = wifi.ifconfig()[2]
-            sendData = f"id={AP_SSID}&command=resist"
+            sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}"
             sendSocket(sendIpAdress,sendData)
             processCheckList("check_resist",True)
             update_init_remaining_esp32()
