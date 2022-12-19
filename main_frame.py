@@ -59,6 +59,7 @@ def activate_AP():
     red.on()
     print("(ip,netmask,gw,dns)=" + str(ap.ifconfig()))
     ap.active(True)
+    processCheckList("check_ap",True)
 
 # 研究室Wi-Fiに接続する場合
 def connect_wifi(ssid, passkey, timeout=10):
@@ -304,12 +305,13 @@ def init_network():
     labConnectedFlag = wifi_scan()
     
     if wifi.ifconfig()[0].split(".")[0] == "192":
+        processCheckList("check_wifi",True)
         if labConnectedFlag == True:
             # 研究室Wi-Fiに接続している場合はサーバへ通知をする
             url = "http://192.168.100.236:5000/init_network_recieve"
             sendText = "connected"
             httpPost(url,sendText)
-            
+            processCheckList("check_resist",True)
             # 研究室に通知したらアクセスポイントの起動
             activate_AP()
             # ソケット受け取り準備(threadで・・・)
@@ -323,12 +325,43 @@ def init_network():
             sendIpAdress = wifi.ifconfig()[2]
             sendData = f"id={AP_SSID}&command=resist"
             sendSocket(sendIpAdress,sendData)
+            processCheckList("check_resist",True)
         else:
             print("処理せず")
     else:
         init_network()
-def main():
+
+check_booting = False
+check_wifi = False
+check_ap = False
+check_resist = False
+def processCheckList(processName,checked):
+    global check_booting
+    global check_wifi
+    global check_ap
+    global check_resist
     
+    if processName == "check_booting":
+        check_booting = checked
+    elif processName == "check_wifi":
+        check_wifi = checked
+    elif processName == "check_ap":
+        check_ap = checked
+    elif processName == "check_resist":
+        check_resist = checked
+    
+    checkList = f"""
+    booting   :   {check_booting}
+    wi-fi     :   {check_wifi}
+    eneble AP :   {check_ap}
+    RESIST    :   {check_resist}
+    """
+    
+    print(checkList)
+
+
+def main():
+    processCheckList("check_booting",True)
     #execfile("autowifi.py")
     print(" --- キャッシュデータ削除処理 ---")
     deleteCashFile()
