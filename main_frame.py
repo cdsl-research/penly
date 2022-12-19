@@ -117,7 +117,6 @@ def esp_connect_wifi(ssid, timeout=10):
 # Wi-Fiスキャン
 # 研究室Wi-Fiに繋げられるなら繋げる
 # 繋げられない場合はESP32を探す
-ENABLE_CONNECT_ESP32 = ["ESP_27B055","ESP_27B055"]
 def wifi_scan():
     print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
     global wifi
