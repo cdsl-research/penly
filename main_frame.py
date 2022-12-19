@@ -138,6 +138,8 @@ def wifi_scan():
         # もしすでに起動している場合は起動せず(IPアドレスが変わっちゃうから)
         if not ap.active():
             activate_AP()
+        _thread.start_new_thread(received_socket,())
+        _thread.start_new_thread(processRecv,())
         common_el = list()
         for el in wifiSsidList:
             if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
@@ -366,7 +368,7 @@ def update_connected_from_esp32():
     
     for wl in wifiList:
         for wl2 in ENABLE_CONNECT_ESP32:
-            if wl == wl2:
+            if wl == wl2 and wl2 != "":
                 if wl in REQUIRE_CONNECTED_ESP32:
                     if REQUIRE_CONNECTED_ESP32[wl] == False:
                         REQUIRE_CONNECTED_ESP32[wl] = False
