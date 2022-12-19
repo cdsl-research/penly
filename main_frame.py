@@ -138,8 +138,6 @@ def wifi_scan():
         # もしすでに起動している場合は起動せず(IPアドレスが変わっちゃうから)
         if not ap.active():
             activate_AP()
-        _thread.start_new_thread(received_socket,())
-        _thread.start_new_thread(processRecv,())
         common_el = list()
         for el in wifiSsidList:
             if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
@@ -149,6 +147,8 @@ def wifi_scan():
         if common_el:
             for c_el in common_el:
                 esp_connect_wifi(c_el)
+                _thread.start_new_thread(received_socket,())
+                _thread.start_new_thread(processRecv,())
                 return False
         else:
             print("接続できるネットワーク環境がありません")
@@ -197,6 +197,7 @@ def readRecvFile():
 
 # 受信データの読み込んで処理をする
 def processRecv():
+    processCheckList("check_thread_processRecv",True)
     while True:
         fileData = readRecvFile()
         if fileData == 0:
@@ -294,6 +295,7 @@ def sendSocket(ipAdress,sendData):
     print("Sending Complete!")
     
 def received_socket():
+    processCheckList("check_thread_received_socket",True)
     listenSocket = socket.socket()
     listenSocket.bind(('', PORT))
     listenSocket.listen(5)
@@ -437,6 +439,8 @@ check_ap = False
 check_resist = False
 check_esp_allconnect = False # 全てのESP32に接続したか？(CDSLに繋がらない場合)
 check_esp_connected = False # 全てのESP32が接続してきたか？ (CDSLに繋げない場合)
+check_thread_received_socket = False
+check_thread_processRecv = False
 def processCheckList(processName,checked):
     global check_booting
     global check_wifi
@@ -444,6 +448,8 @@ def processCheckList(processName,checked):
     global check_resist
     global check_esp_allconnect
     global check_esp_connected
+    global check_thread_processRecv
+    global check_thread_received_socket
     
     if processName == "check_booting":
         check_booting = checked
@@ -457,6 +463,10 @@ def processCheckList(processName,checked):
         check_esp_allconnect = checked
     elif processName == "check_esp_connected":
         check_esp_connected = checked
+    elif processName == "check_thread_received_socket":
+        check_thread_received_socket = checked
+    elif processName == "check_thread_processRecv":
+        check_thread_processRecv = checked
     
     checkList = f"""
     booting             :   {check_booting}
@@ -465,6 +475,10 @@ def processCheckList(processName,checked):
     RESIST              :   {check_resist}
     ESP_CONNECT_COMP    :   {check_esp_allconnect}
     CONNECTED_ESP_COMP  :   {check_esp_connected}
+    
+    =THEAD=
+    receiced_socket()   :   {check_thread_received_socket}
+    processRecv()       :   {check_thread_processRecv}
     """
     
     print(checkList)
