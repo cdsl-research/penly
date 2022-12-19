@@ -203,7 +203,7 @@ def processRecv():
             fileDataSplit = fileData.split("?")
             fileData = fileDataSplit[0]
             addr = fileDataSplit[1]
-            print(f"\処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+            print(f"処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
             
             fileDataProcessData = fileData.split("&")
             recvEsp32Id = ""
@@ -382,13 +382,15 @@ check_booting = False
 check_wifi = False
 check_ap = False
 check_resist = False
-check_esp_allconnect = False
+check_esp_allconnect = False # 全てのESP32に接続したか？(CDSLに繋がらない場合)
+check_esp_connected = False # 全てのESP32が接続してきたか？ (CDSLに繋げない場合)
 def processCheckList(processName,checked):
     global check_booting
     global check_wifi
     global check_ap
     global check_resist
     global check_esp_allconnect
+    global check_esp_connected
     
     if processName == "check_booting":
         check_booting = checked
@@ -400,13 +402,16 @@ def processCheckList(processName,checked):
         check_resist = checked
     elif processName == "check_esp_allconnect":
         check_esp_allconnect = checked
+    elif processName == "check_esp_connected":
+        check_esp_connected = checked
     
     checkList = f"""
-    booting           :   {check_booting}
-    wi-fi             :   {check_wifi}
-    eneble AP         :   {check_ap}
-    RESIST            :   {check_resist}
-    ESP_CONNECT_COMP  :   {check_esp_allconnect}
+    booting             :   {check_booting}
+    wi-fi               :   {check_wifi}
+    eneble AP           :   {check_ap}
+    RESIST              :   {check_resist}
+    ESP_CONNECT_COMP    :   {check_esp_allconnect}
+    CONNECTED_ESP_COMP  :   {check_esp_connected}
     """
     
     print(checkList)
