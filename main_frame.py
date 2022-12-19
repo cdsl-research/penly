@@ -152,8 +152,10 @@ def wifi_scan():
                     wifi.disconnect()
                     utime.sleep(1)
                     esp_connect_wifi(c_el)
-                    _thread.start_new_thread(received_socket,())
-                    _thread.start_new_thread(processRecv,())
+                    if check_thread_received_socket != True:
+                        _thread.start_new_thread(received_socket,())
+                    if check_thread_processRecv != True:
+                        _thread.start_new_thread(processRecv,())
                     return False
         else:
             print("接続できるネットワーク環境がありません")
@@ -270,55 +272,71 @@ def resist_ESP32_httpPost(url,sendText,transfer_espid,temporaryRoute):
     if AP_SSID != "":
         # 再度SSIDの取得
         AP_SSID = str(ap.config("essid"))
-    blue.on()
-    print(f"転送元ESP32 : {transfer_espid}  ---> サーバへ送信するデータ： {sendText}")
+    try:
+        blue.on()
+        print(f"転送元ESP32 : {transfer_espid}  ---> サーバへ送信するデータ： {sendText}")
+            
+        sendData = {
+            "data" : sendText,
+            "espid" : AP_SSID,
+            "transfer_espid" : transfer_espid,
+            "route" : temporaryRoute
+        }
         
-    sendData = {
-        "data" : sendText,
-        "espid" : AP_SSID,
-        "transfer_espid" : transfer_espid,
-        "route" : temporaryRoute
-    }
-    
-    url += "?"
-    
-    for sdk,sdv in sendData.items():
-        url += sdk + "=" + sdv + "&"
-    print(url)
-    res = urequests.get(url)
-    print("サーバからのステータスコード：", res.status_code)
-    res.close()
-    blue.off()
+        url += "?"
+        
+        for sdk,sdv in sendData.items():
+            url += sdk + "=" + sdv + "&"
+        print(url)
+        res = urequests.get(url)
+        print("サーバからのステータスコード：", res.status_code)
+        res.close()
+        blue.off()
+    except Exception as e:
+        blue.off()
+        print(" **** サーバへの送信が失敗しました ****")
+        print(e)
+        print(" **** ３秒後に再度やり直します ****")
+        utime.sleep(3)
+        resist_ESP32_httpPost(url,sendText,transfer_espid,temporaryRoute)
 
 # サーバにHTTPリクエストを送信
 def httpPost(url,sendText):
     global AP_SSID
-    blue.on()
-    print(f"サーバへ送信するデータ： {sendText}")
-    ap = network.WLAN(network.AP_IF)
-    if AP_SSID == "":
-        while AP_SSID == "":
-            AP_SSID = str(ap.config("essid"))
-    
-    print(f"""
-        ==== HTTPPOSTの送信前確認 ====
-        AP_SSID : {AP_SSID}
-    """)
-    
-    sendData = {
-        "data" : sendText,
-        "espid" : AP_SSID
-    }
-    
-    url += "?"
-    
-    for sdk,sdv in sendData.items():
-        url += sdk + "=" + sdv + "&"
-    print(url)
-    res = urequests.get(url)
-    print("サーバからのステータスコード：", res.status_code)
-    res.close()
-    blue.off()
+    try:
+        blue.on()
+        print(f"サーバへ送信するデータ： {sendText}")
+        ap = network.WLAN(network.AP_IF)
+        if AP_SSID == "":
+            while AP_SSID == "":
+                AP_SSID = str(ap.config("essid"))
+        
+        print(f"""
+            ==== HTTPPOSTの送信前確認 ====
+            AP_SSID : {AP_SSID}
+        """)
+        
+        sendData = {
+            "data" : sendText,
+            "espid" : AP_SSID
+        }
+        
+        url += "?"
+        
+        for sdk,sdv in sendData.items():
+            url += sdk + "=" + sdv + "&"
+        print(url)
+        res = urequests.get(url)
+        print("サーバからのステータスコード：", res.status_code)
+        res.close()
+        blue.off()
+    except Exception as e:
+        blue.off()
+        print(" **** サーバへの送信が失敗しました ****")
+        print(e)
+        print(" **** ３秒後に再度やり直します ****")
+        utime.sleep(3)
+        httpPost(url,sendText)
 
 def sendSocket(ipAdress,sendData):
     try:
@@ -338,11 +356,11 @@ def sendSocket(ipAdress,sendData):
         sendSocket(ipAdress,sendData)
     
 def received_socket():
-    processCheckList("check_thread_received_socket",True)
     listenSocket = socket.socket()
     listenSocket.bind(('', PORT))
     listenSocket.listen(5)
     listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    processCheckList("check_thread_received_socket",True)
     print('tcp waiting...')
     while True:
         print("accepting.....ソケット通信待機中......")
@@ -452,8 +470,10 @@ def init_network():
             # 研究室に通知したらアクセスポイントの起動
             activate_AP()
             # ソケット受け取り準備(threadで・・・)
-            _thread.start_new_thread(received_socket,())
-            _thread.start_new_thread(processRecv,())
+            if check_thread_received_socket != True:
+                _thread.start_new_thread(received_socket,())
+            if check_thread_processRecv != True:
+                _thread.start_new_thread(processRecv,())
             update_connected_from_esp32()
         elif labConnectedFlag == False:
             processCheckList("check_esp_connected",True)
