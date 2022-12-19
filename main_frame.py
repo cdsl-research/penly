@@ -120,11 +120,13 @@ ENABLE_CONNECT_ESP32 = ["ESP_27B055","ESP_27B055"]
 def wifi_scan():
     print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
     global wifi
+    global NEEDING_CONNECT_ESP32
     wifiList = wifi.scan()
     wifiSsidList = list()
     for wl in wifiList:
         wifiSsidList.append(wl[0].decode("utf-8"))
     print(wifiSsidList)
+    check_init_remaining_esp32(wifiSsidList)
     connected_wifi = False
     if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
         # 研究室へ接続
@@ -136,11 +138,12 @@ def wifi_scan():
         activate_AP()
         common_el = list()
         for el in wifiSsidList:
-            if el in ENABLE_CONNECT_ESP32:
+            if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
                 common_el.append(el)
                 print(f"接続可能なESP32を検知 ---> {el}")
         
         if common_el:
+            NEEDING_CONNECT_ESP32[el] = True
             esp_connect_wifi(common_el[0])
             return False
         else:
@@ -297,6 +300,23 @@ def received_socket():
         str_data += "?" + addr
         writeRecvFile(str_data)
         green.off()
+        
+
+### 接続できるESP32の候補を制限する
+
+### 接続が必要なESP32のチェックリスト,全てTrueになればOK
+NEEDING_CONNECT_ESP32 = {}
+### 初回で，接続できるESP32を全て洗い出す
+def check_init_remaining_esp32(wifiList):
+    global NEEDING_CONNECT_ESP32
+    if DEFAULT_LAB_CONNECT == False:
+        for wl in wifiList:
+            if "ESP" in wl:
+                NEEDING_CONNECT_ESP32[wl] = False
+        
+        print("接続可能ESP32  ---↓")
+        for k,v in NEEDING_CONNECT_ESP32.items():
+            print(f"{k} : {v}")
 
 def init_network():
     global AP_SSID
