@@ -387,6 +387,7 @@ def check_connected_from_esp32():
 
 def init_network():
     global AP_SSID
+    global ap
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
@@ -394,6 +395,7 @@ def init_network():
     if wifi.ifconfig()[0].split(".")[0] == "192":
         processCheckList("check_wifi",True)
         if labConnectedFlag == True:
+            processCheckList("check_esp_allconnect",True)
             # 研究室Wi-Fiに接続している場合はサーバへ通知をする
             url = "http://192.168.100.236:5000/init_network_recieve"
             sendText = "connected"
@@ -406,10 +408,13 @@ def init_network():
             _thread.start_new_thread(processRecv,())
             update_connected_from_esp32()
         elif labConnectedFlag == False:
+            processCheckList("check_esp_connected",True)
             # ESP32へ接続して登録処理を行う
             # 再度SSIDの取得
             if AP_SSID != "":
-                AP_SSID = str(ap.config("essid"))
+                while AP_SSID == "":
+                    ap = network.WLAN(network.AP_IF)
+                    AP_SSID = str(ap.config("essid"))
             sendIpAdress = wifi.ifconfig()[2]
             sendData = f"id={AP_SSID}&command=resist"
             sendSocket(sendIpAdress,sendData)
