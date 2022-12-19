@@ -124,6 +124,7 @@ def wifi_scan():
     for wl in wifiList:
         wifiSsidList.append(wl[0].decode("utf-8"))
     print(wifiSsidList)
+    connected_wifi = False
     if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
         # 研究室へ接続
         print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
@@ -302,27 +303,30 @@ def init_network():
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
     
-    if labConnectedFlag == True:
-        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-        url = "http://192.168.100.236:5000/init_network_recieve"
-        sendText = "connected"
-        httpPost(url,sendText)
-        
-        # 研究室に通知したらアクセスポイントの起動
-        activate_AP()
-        # ソケット受け取り準備(threadで・・・)
-        _thread.start_new_thread(received_socket,())
-        _thread.start_new_thread(processRecv,())
-    elif labConnectedFlag == False:
-        # ESP32へ接続して登録処理を行う
-        # 再度SSIDの取得
-        if AP_SSID != "":
-            AP_SSID = str(ap.config("essid"))
-        sendIpAdress = wifi.ifconfig()[2]
-        sendData = f"id={AP_SSID}&command=resist"
-        sendSocket(sendIpAdress,sendData)
+    if wifi.ifconfig()[0].split(".")[0] == "192":
+        if labConnectedFlag == True:
+            # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+            url = "http://192.168.100.236:5000/init_network_recieve"
+            sendText = "connected"
+            httpPost(url,sendText)
+            
+            # 研究室に通知したらアクセスポイントの起動
+            activate_AP()
+            # ソケット受け取り準備(threadで・・・)
+            _thread.start_new_thread(received_socket,())
+            _thread.start_new_thread(processRecv,())
+        elif labConnectedFlag == False:
+            # ESP32へ接続して登録処理を行う
+            # 再度SSIDの取得
+            if AP_SSID != "":
+                AP_SSID = str(ap.config("essid"))
+            sendIpAdress = wifi.ifconfig()[2]
+            sendData = f"id={AP_SSID}&command=resist"
+            sendSocket(sendIpAdress,sendData)
+        else:
+            print("処理せず")
     else:
-        print("処理せず")
+        init_network()
 def main():
     
     #execfile("autowifi.py")
