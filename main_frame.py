@@ -199,29 +199,33 @@ def processRecv():
         fileData = readRecvFile()
         if fileData == 0:
             utime.sleep(0.5)
-        else:
-            fileDataSplit = fileData.split("?")
-            fileData = fileDataSplit[0]
-            addr = fileDataSplit[1]
-            print(f"処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
-            
-            fileDataProcessData = fileData.split("&")
-            recvEsp32Id = ""
-            for fspd in fileDataProcessData:
-                fspdSplit = fspd.split("=")
-                proKey = fspdSplit[0]
-                proValue = fspdSplit[1]
-                print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
-                if proKey == "id":
-                    recvEsp32Id = proValue
-                    print(f"受信ESP32のID == {proValue}")
-                if proKey == "command":
-                    if proValue == "resist":
-                        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-                        url = "http://192.168.100.236:5000/init_network_recieve"
-                        sendText = "connected"
-                        resist_ESP32_httpPost(url,sendText,recvEsp32Id)
-            utime.sleep(0.5)
+            continue
+        fileDataSplit = fileData.split("?")
+        fileData = fileDataSplit[0]
+        addr = fileDataSplit[1]
+        print(f"処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+        
+        fileDataProcessData = fileData.split("&")
+        recvEsp32Id = ""
+        command = None
+        for fspd in fileDataProcessData:
+            fspdSplit = fspd.split("=")
+            proKey = fspdSplit[0]
+            proValue = fspdSplit[1]
+            print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
+            if proKey == "id":
+                recvEsp32Id = proValue
+                print(f"受信ESP32のID == {proValue}")
+            if proKey == "command":
+                command = proValue
+        
+        if command == "resist":
+            # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+            url = "http://192.168.100.236:5000/init_network_recieve"
+            sendText = "connected"
+            resist_ESP32_httpPost(url,sendText,recvEsp32Id)
+        utime.sleep(0.5)
+
 
 
 # サーバへ転送用
