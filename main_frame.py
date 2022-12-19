@@ -146,10 +146,15 @@ def wifi_scan():
         
         if common_el:
             for c_el in common_el:
-                esp_connect_wifi(c_el)
-                _thread.start_new_thread(received_socket,())
-                _thread.start_new_thread(processRecv,())
-                return False
+                if NEEDING_CONNECT_ESP32[c_el] == False:
+                    print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
+                    p2.off()
+                    wifi.disconnect()
+                    utime.sleep(1)
+                    esp_connect_wifi(c_el)
+                    _thread.start_new_thread(received_socket,())
+                    _thread.start_new_thread(processRecv,())
+                    return False
         else:
             print("接続できるネットワーク環境がありません")
             return 0
@@ -212,6 +217,7 @@ def processRecv():
         recvEsp32Id = ""
         command_origin = None
         id_origin = ""
+        temporaryRoute = ""
         for fspd in fileDataProcessData:
             fspdSplit = fspd.split("=")
             proKey = fspdSplit[0]
@@ -224,6 +230,9 @@ def processRecv():
                 command_origin = proValue
             if proKey == "id_origin":
                 id_origin = proValue
+            if proKey == "route":
+                temporaryRoute = proValue
+                temporaryRoute += f">{AP_SSID}"
         
         if command_origin == "resist":
             REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
@@ -231,7 +240,7 @@ def processRecv():
                 # 研究室Wi-Fiに接続している場合はサーバへ通知をする
                 url = "http://192.168.100.236:5000/init_network_recieve"
                 sendText = "connected"
-                resist_ESP32_httpPost(url,sendText,id_origin)
+                resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
                 update_connected_from_esp32()
                 check_connected_from_esp32()
             else:
@@ -244,7 +253,8 @@ def processRecv():
                 sendDataIndex = {
                     "command_origin" : "resist",
                     "sub_com" : "transfer",
-                    "id_origin" : id_origin
+                    "id_origin" : id_origin,
+                    "route" : temporaryRoute
                 }
                 sendText = f"id={AP_SSID}"
                 for k ,v in sendDataIndex.items(): 
@@ -255,7 +265,7 @@ def processRecv():
 
 
 # サーバへ転送用
-def resist_ESP32_httpPost(url,sendText,transfer_espid):
+def resist_ESP32_httpPost(url,sendText,transfer_espid,temporaryRoute):
     global AP_SSID
     if AP_SSID != "":
         # 再度SSIDの取得
@@ -266,7 +276,8 @@ def resist_ESP32_httpPost(url,sendText,transfer_espid):
     sendData = {
         "data" : sendText,
         "espid" : AP_SSID,
-        "transfer_espid" : transfer_espid
+        "transfer_espid" : transfer_espid,
+        "route" : temporaryRoute
     }
     
     url += "?"
@@ -453,7 +464,7 @@ def init_network():
                     ap = network.WLAN(network.AP_IF)
                     AP_SSID = str(ap.config("essid"))
             sendIpAdress = wifi.ifconfig()[2]
-            sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}"
+            sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}&route={AP_SSID}"
             sendSocket(sendIpAdress,sendData)
             processCheckList("check_resist",True)
             update_init_remaining_esp32()
