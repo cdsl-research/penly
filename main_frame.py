@@ -22,6 +22,10 @@ PORT = 8080
 WRITE_FILE_COUNTER = 0
 # 読み込みファイルカウンター
 READ_FILE_COUNTER = 0
+# 宛先までのルート
+ROUING_TABLE = {}
+# 現在接続されているESP32のIPアドレスとESSIDの辞書
+CURRENT_CONNECT_ESP32 = {}
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -204,6 +208,8 @@ def readRecvFile():
 
 # 受信データの読み込んで処理をする
 def processRecv():
+    global CURRENT_CONNECT_ESP32
+    global ROUING_TABLE
     processCheckList("check_thread_processRecv",True)
     while True:
         fileData = readRecvFile()
@@ -228,6 +234,7 @@ def processRecv():
             if proKey == "id":
                 recvEsp32Id = proValue
                 print(f"受信ESP32のID == {proValue}")
+                CURRENT_CONNECT_ESP32[recvEsp32Id] = addr
             if proKey == "command_origin":
                 command_origin = proValue
             if proKey == "id_origin":
@@ -236,32 +243,56 @@ def processRecv():
                 temporaryRoute = proValue
                 temporaryRoute += f">{AP_SSID}"
         
-        if command_origin == "resist":
-            REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
-            if DEFAULT_LAB_CONNECT:
-                # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-                url = "http://192.168.100.236:5000/init_network_recieve"
-                sendText = "connected"
-                resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
-                update_connected_from_esp32()
-                check_connected_from_esp32()
-            else:
-                sendIpAdress = wifi.ifconfig()[2]
-                # id = 送り元
-                # command_origin = resist (登録)
-                # sub_com = サブコマンド
-                # id_origin = 送り元の紀元
-                # route = たどってきた経路
-                sendDataIndex = {
-                    "command_origin" : "resist",
-                    "sub_com" : "transfer",
-                    "id_origin" : id_origin,
-                    "route" : temporaryRoute
-                }
-                sendText = f"id={AP_SSID}"
-                for k ,v in sendDataIndex.items(): 
-                    sendText += f"&{k}={v}"
-                sendSocket(sendIpAdress,sendText)
+        if recvEsp32Id != "server":
+            if command_origin == "autowifi":
+                print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
+                for ipAdressN in CURRENT_CONNECT_ESP32.values():
+                    sendText = f"id={AP_SSID}&command_origin=autowifi"
+                    sendSocket(ipAdressN,sendText)
+                print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
+                execfile("autowifi.py")
+            ROUING_TABLE[id_origin] = recvEsp32Id
+            print(f" - - - ルーティングテーブルを更新します  - - - ")
+            for rk,rv in ROUING_TABLE.items():
+                print(f"宛先 : {rk} <- - -  送り先 : {rv}")
+            print(f" - - - - - - ")
+            if command_origin == "resist":
+                REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
+                if DEFAULT_LAB_CONNECT:
+                    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                    url = "http://192.168.100.236:5000/init_network_recieve"
+                    sendText = "connected"
+                    resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
+                    update_connected_from_esp32()
+                    check_connected_from_esp32()
+                else:
+                    sendIpAdress = wifi.ifconfig()[2]
+                    # id = 送り元
+                    # command_origin = resist (登録)
+                    # sub_com = サブコマンド
+                    # id_origin = 送り元の紀元
+                    # route = たどってきた経路
+                    sendDataIndex = {
+                        "command_origin" : "resist",
+                        "sub_com" : "transfer",
+                        "id_origin" : id_origin,
+                        "route" : temporaryRoute
+                    }
+                    sendText = f"id={AP_SSID}"
+                    for k ,v in sendDataIndex.items(): 
+                        sendText += f"&{k}={v}"
+                    sendSocket(sendIpAdress,sendText)
+        else:
+            # サーバから送信された場合の処理
+            print("大変！！！サーバから接続されちゃった！！！！")
+            if command_origin == "autowifi":
+                print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
+                for ipAdressN in CURRENT_CONNECT_ESP32.values():
+                    sendText = f"id={AP_SSID}&command_origin=autowifi"
+                    sendSocket(ipAdressN,sendText)
+                print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
+                execfile("autowifi.py")
+            pass
         utime.sleep(0.5)
 
 
@@ -545,6 +576,7 @@ def processCheckList(processName,checked):
     """
     
     print(checkList)
+    
 ##############
 
 
