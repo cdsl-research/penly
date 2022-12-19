@@ -126,7 +126,7 @@ def wifi_scan():
     for wl in wifiList:
         wifiSsidList.append(wl[0].decode("utf-8"))
     print(wifiSsidList)
-    check_init_remaining_esp32(wifiSsidList)
+    update_init_remaining_esp32(wifiSsidList)
     connected_wifi = False
     if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
         # 研究室へ接続
@@ -143,9 +143,11 @@ def wifi_scan():
                 print(f"接続可能なESP32を検知 ---> {el}")
         
         if common_el:
-            NEEDING_CONNECT_ESP32[el] = True
-            esp_connect_wifi(common_el[0])
-            return False
+            for c_el in common_el:
+                if c_el in NEEDING_CONNECT_ESP32:
+                    NEEDING_CONNECT_ESP32[c_el] = True
+                esp_connect_wifi(c_el)
+                return False
         else:
             print("接続できるネットワーク環境がありません")
             return 0
@@ -307,16 +309,35 @@ def received_socket():
 ### 接続が必要なESP32のチェックリスト,全てTrueになればOK
 NEEDING_CONNECT_ESP32 = {}
 ### 初回で，接続できるESP32を全て洗い出す
-def check_init_remaining_esp32(wifiList):
+def update_init_remaining_esp32(wifiList=None):
+    global wifi
     global NEEDING_CONNECT_ESP32
+    
+    # もし引数に何も与えられなかったらここでスキャンする
+    if wifiList == None:
+        wifiList = wifi.scan()
+        wifiSsidList = list()
+        for wl in wifiList:
+            wifiSsidList.append(wl[0].decode("utf-8"))
+        wifiList = wifiSsidList
+
     if DEFAULT_LAB_CONNECT == False:
         for wl in wifiList:
-            if "ESP" in wl:
-                NEEDING_CONNECT_ESP32[wl] = False
+            for wl2 in ENABLE_CONNECT_ESP32:
+                if wl2 == wl:
+                    NEEDING_CONNECT_ESP32[wl] = False
         
         print("接続可能ESP32  ---↓")
         for k,v in NEEDING_CONNECT_ESP32.items():
             print(f"{k} : {v}")
+
+def check_init_remaing_esp32():
+    global NEEDING_CONNECT_ESP32
+    if False in NEEDING_CONNECT_ESP32.values():
+        init_network()
+    else:
+        return True
+
 
 def init_network():
     global AP_SSID
@@ -346,20 +367,28 @@ def init_network():
             sendData = f"id={AP_SSID}&command=resist"
             sendSocket(sendIpAdress,sendData)
             processCheckList("check_resist",True)
+            update_init_remaining_esp32()
+            if check_init_remaing_esp32():
+                print("\nESP32の全ての接続と更新を完了します")
+                processCheckList("check_esp_allconnect",True)
         else:
             print("処理せず")
     else:
         init_network()
 
+
+####### チェックリスト #######
 check_booting = False
 check_wifi = False
 check_ap = False
 check_resist = False
+check_esp_allconnect = False
 def processCheckList(processName,checked):
     global check_booting
     global check_wifi
     global check_ap
     global check_resist
+    global check_esp_allconnect
     
     if processName == "check_booting":
         check_booting = checked
@@ -369,15 +398,19 @@ def processCheckList(processName,checked):
         check_ap = checked
     elif processName == "check_resist":
         check_resist = checked
+    elif processName == "check_esp_allconnect":
+        check_esp_allconnect = checked
     
     checkList = f"""
-    booting   :   {check_booting}
-    wi-fi     :   {check_wifi}
-    eneble AP :   {check_ap}
-    RESIST    :   {check_resist}
+    booting           :   {check_booting}
+    wi-fi             :   {check_wifi}
+    eneble AP         :   {check_ap}
+    RESIST            :   {check_resist}
+    ESP_CONNECT_COMP  :   {check_esp_allconnect}
     """
     
     print(checkList)
+##############
 
 
 def main():
