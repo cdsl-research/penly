@@ -310,14 +310,21 @@ def httpPost(url,sendText):
     blue.off()
 
 def sendSocket(ipAdress,sendData):
-    print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
-    blue.on()
-    s = socket.socket()
-    s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
-    s.send(sendData)
-    s.close()
-    blue.off()
-    print("Sending Complete!")
+    try:
+        print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
+        blue.on()
+        s = socket.socket()
+        s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
+        s.send(sendData)
+        s.close()
+        blue.off()
+        print("Sending Complete!")
+    except Exception as e:
+        print("\n **** ソケット送信で問題が発生 ****")
+        print(e)
+        print(" **** ３秒後に再度やり直します ****")
+        utime.sleep(3)
+        sendSocket(ipAdress,sendData)
     
 def received_socket():
     processCheckList("check_thread_received_socket",True)
