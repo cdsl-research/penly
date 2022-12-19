@@ -105,6 +105,7 @@ def esp_connect_wifi(ssid, timeout=10):
 
     if wifi.isconnected():
         p2.on()
+        NEEDING_CONNECT_ESP32[ssid] = True
         print(ssid, 'Connected')
         print(wifi.ifconfig())
         return wifi
@@ -144,8 +145,6 @@ def wifi_scan():
         
         if common_el:
             for c_el in common_el:
-                if c_el in NEEDING_CONNECT_ESP32:
-                    NEEDING_CONNECT_ESP32[c_el] = True
                 esp_connect_wifi(c_el)
                 return False
         else:
@@ -220,10 +219,13 @@ def processRecv():
                 command = proValue
         
         if command == "resist":
+            REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
             # 研究室Wi-Fiに接続している場合はサーバへ通知をする
             url = "http://192.168.100.236:5000/init_network_recieve"
             sendText = "connected"
             resist_ESP32_httpPost(url,sendText,recvEsp32Id)
+            update_connected_from_esp32()
+            check_connected_from_esp32()
         utime.sleep(0.5)
 
 
@@ -329,7 +331,11 @@ def update_init_remaining_esp32(wifiList=None):
         for wl in wifiList:
             for wl2 in ENABLE_CONNECT_ESP32:
                 if wl2 == wl:
-                    NEEDING_CONNECT_ESP32[wl] = False
+                    if wl in NEEDING_CONNECT_ESP32:
+                        if NEEDING_CONNECT_ESP32[wl] == False:
+                            NEEDING_CONNECT_ESP32[wl] = False
+                    else:
+                        NEEDING_CONNECT_ESP32[wl] = False
         
         print("接続可能ESP32  ---↓")
         for k,v in NEEDING_CONNECT_ESP32.items():
@@ -340,8 +346,44 @@ def check_init_remaing_esp32():
     if False in NEEDING_CONNECT_ESP32.values():
         init_network()
     else:
+        print("\nESP32の全ての接続と更新を完了します")
+        processCheckList("check_esp_allconnect",True)
         return True
 
+
+
+### 接続されるはずのESP32を列挙し，ちゃんと接続されたかを判別する
+REQUIRE_CONNECTED_ESP32 = {}
+def update_connected_from_esp32():
+    global REQUIRE_CONNECTED_ESP32
+    # wifiスキャン
+    wifiList = wifi.scan()
+    wifiSsidList = list()
+    for wl in wifiList:
+        wifiSsidList.append(wl[0].decode("utf-8"))
+    wifiList = wifiSsidList
+    
+    for wl in wifiList:
+        for wl2 in ENABLE_CONNECT_ESP32:
+            if wl == wl2:
+                if wl in REQUIRE_CONNECTED_ESP32:
+                    if REQUIRE_CONNECTED_ESP32[wl] == False:
+                        REQUIRE_CONNECTED_ESP32[wl] = False
+                else:
+                    REQUIRE_CONNECTED_ESP32[wl] = False
+
+    print("----- 接続予定のESP32リストの更新 -----")
+    for k,v in REQUIRE_CONNECTED_ESP32.items():
+        print(f"{k}  :   {v}")
+
+def check_connected_from_esp32():
+    global REQUIRE_CONNECTED_ESP32
+    if False not in REQUIRE_CONNECTED_ESP32.values():
+        print("\n接続予定の全てのESP32との接続を確認")
+        processCheckList("check_esp_connected",True)
+        return True
+    else:
+        return False
 
 def init_network():
     global AP_SSID
@@ -362,6 +404,7 @@ def init_network():
             # ソケット受け取り準備(threadで・・・)
             _thread.start_new_thread(received_socket,())
             _thread.start_new_thread(processRecv,())
+            update_connected_from_esp32()
         elif labConnectedFlag == False:
             # ESP32へ接続して登録処理を行う
             # 再度SSIDの取得
@@ -372,9 +415,7 @@ def init_network():
             sendSocket(sendIpAdress,sendData)
             processCheckList("check_resist",True)
             update_init_remaining_esp32()
-            if check_init_remaing_esp32():
-                print("\nESP32の全ての接続と更新を完了します")
-                processCheckList("check_esp_allconnect",True)
+            check_init_remaing_esp32()
         else:
             print("処理せず")
     else:
@@ -425,6 +466,7 @@ def processCheckList(processName,checked):
 def main():
     processCheckList("check_booting",True)
     #execfile("autowifi.py")
+    
     print(" --- キャッシュデータ削除処理 ---")
     deleteCashFile()
     
