@@ -264,10 +264,15 @@ def httpPost(url,sendText):
     global AP_SSID
     blue.on()
     print(f"サーバへ送信するデータ： {sendText}")
+    ap = network.WLAN(network.AP_IF)
+    if AP_SSID == "":
+        while AP_SSID == "":
+            AP_SSID = str(ap.config("essid"))
     
-    if AP_SSID != "":
-        # 再度SSIDの取得
-        AP_SSID = str(ap.config("essid"))
+    print(f"""
+        ==== HTTPPOSTの送信前確認 ====
+        AP_SSID : {AP_SSID}
+    """)
     
     sendData = {
         "data" : sendText,
@@ -416,7 +421,7 @@ def init_network():
             processCheckList("check_esp_connected",True)
             # ESP32へ接続して登録処理を行う
             # 再度SSIDの取得
-            if AP_SSID != "":
+            if AP_SSID == "":
                 while AP_SSID == "":
                     ap = network.WLAN(network.AP_IF)
                     AP_SSID = str(ap.config("essid"))
