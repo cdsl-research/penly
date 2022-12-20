@@ -160,10 +160,10 @@ def check_wifi_thread():
         except Exception as e:
             print("""\n
             * * * * * CHECK_WIFI_THREADで重大なエラーが発生 * * * * *
-            * * * * * THREADを継続させるためEXCEPTIONで回避 * * * * *
+            * * * * * THREADを継続させるためTHEADを停止します * * * * *
             """)
-            print(e)
-            utime.sleep(1)
+            # Whileから脱出
+            break
 
 
 # Wi-Fiスキャン
@@ -494,7 +494,8 @@ def check_init_remaing_esp32():
     else:
         print("\nESP32の全ての接続と更新を完了します")
         processCheckList("check_esp_allconnect",True)
-        _thread.start_new_thread(check_wifi_thread,())
+        #危険なのでコメントアウト
+        #_thread.start_new_thread(check_wifi_thread,())
         return True
 
 
