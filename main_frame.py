@@ -25,7 +25,9 @@ READ_FILE_COUNTER = 0
 # 宛先までのルート
 ROUING_TABLE = {}
 # 現在接続されているESP32のIPアドレスとESSIDの辞書
-CURRENT_CONNECT_ESP32 = {}
+CURRENT_CONNECTED_FROM_ESP32 = {}
+# 現在接続しているESP32のIPアドレス
+CURRENT_CONNECT_TO_ESP32 = {}
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -91,6 +93,7 @@ def connect_wifi(ssid, passkey, timeout=10):
 
 # ESPに接続する場合(PASSなし)
 def esp_connect_wifi(ssid, timeout=10):
+    global CURRENT_CONNECT_TO_ESP32
     count = 0
     wifi = network.WLAN(network.STA_IF)
     wifi.active(True)
@@ -110,12 +113,53 @@ def esp_connect_wifi(ssid, timeout=10):
     if wifi.isconnected():
         p2.on()
         NEEDING_CONNECT_ESP32[ssid] = True
+        # 初期化
+        CURRENT_CONNECT_TO_ESP32 = {}
+        CURRENT_CONNECT_TO_ESP32[ssid] = True
         print(ssid, 'Connected')
         print(wifi.ifconfig())
         return wifi
     else:
         print(ssid, 'Connection failed!')
         return ''
+
+def check_wifi_thread():
+    print(" - - - Wi-Fiの接続確認開始 - - - - ")
+    processCheckList("check_thread_checkWifi",True)
+    global wifi
+    global CURRENT_CONNECT_TO_ESP32
+    ERROR_COUNT = 0
+    while True:
+        try:
+            wifiList = wifi.scan()
+            wifiSsidList = list()
+            for wl in wifiList:
+                wifiSsidList.append(wl[0].decode("utf-8"))
+            flaflag = True
+            for wl in wifiSsidList:
+                if wl != "":
+                    if wl in CURRENT_CONNECT_TO_ESP32:
+                        flaflag = False
+            if flaflag:
+                ERROR_COUNT += 1
+                if ERROR_COUNT == 2:
+                    ERROR_COUNT = 0
+                    print(f"""
+                        * * * * wifiの接続状態の確認取れず COUNT={ERROR_COUNT} 再接続処理 * * * *  
+                    """)
+                    init_network()
+                else:
+                    print(f"""
+                    * * * * wifiの接続状態の確認取れず : ERROR_COUNT = {ERROR_COUNT} (2回で再接続) * * * 
+                    """)
+            utime.sleep(1)
+        except Exception as e:
+            print("""\n
+            * * * * * CHECK_WIFI_THREADで重大なエラーが発生 * * * * *
+            * * * * * THREADを継続させるためEXCEPTIONで回避 * * * * *
+            """)
+            print(e)
+            utime.sleep(1)
 
 
 # Wi-Fiスキャン
@@ -208,7 +252,7 @@ def readRecvFile():
 
 # 受信データの読み込んで処理をする
 def processRecv():
-    global CURRENT_CONNECT_ESP32
+    global CURRENT_CONNECTED_FROM_ESP32
     global ROUING_TABLE
     processCheckList("check_thread_processRecv",True)
     while True:
@@ -234,7 +278,7 @@ def processRecv():
             if proKey == "id":
                 recvEsp32Id = proValue
                 print(f"受信ESP32のID == {proValue}")
-                CURRENT_CONNECT_ESP32[recvEsp32Id] = addr
+                CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
             if proKey == "command_origin":
                 command_origin = proValue
             if proKey == "id_origin":
@@ -246,7 +290,7 @@ def processRecv():
         if recvEsp32Id != "server":
             if command_origin == "autowifi":
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
-                for ipAdressN in CURRENT_CONNECT_ESP32.values():
+                for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
                     sendText = f"id={AP_SSID}&command_origin=autowifi"
                     sendSocket(ipAdressN,sendText)
                 print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
@@ -255,7 +299,7 @@ def processRecv():
             print(f" - - - ルーティングテーブルを更新します  - - - ")
             for rk,rv in ROUING_TABLE.items():
                 print(f"宛先 : {rk} <- - -  送り先 : {rv}")
-            print(f" - - - - - - ")
+            print(f" - - - - - - - - - - - - - - - - - - - - ")
             if command_origin == "resist":
                 REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
                 if DEFAULT_LAB_CONNECT:
@@ -287,7 +331,7 @@ def processRecv():
             print("大変！！！サーバから接続されちゃった！！！！")
             if command_origin == "autowifi":
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
-                for ipAdressN in CURRENT_CONNECT_ESP32.values():
+                for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
                     sendText = f"id={AP_SSID}&command_origin=autowifi"
                     sendSocket(ipAdressN,sendText)
                 print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
@@ -445,6 +489,7 @@ def check_init_remaing_esp32():
     else:
         print("\nESP32の全ての接続と更新を完了します")
         processCheckList("check_esp_allconnect",True)
+        _thread.start_new_thread(check_wifi_thread,())
         return True
 
 
@@ -535,6 +580,7 @@ check_esp_allconnect = False # 全てのESP32に接続したか？(CDSLに繋が
 check_esp_connected = False # 全てのESP32が接続してきたか？ (CDSLに繋げない場合)
 check_thread_received_socket = False
 check_thread_processRecv = False
+check_thread_checkWifi = False
 def processCheckList(processName,checked):
     global check_booting
     global check_wifi
@@ -544,6 +590,7 @@ def processCheckList(processName,checked):
     global check_esp_connected
     global check_thread_processRecv
     global check_thread_received_socket
+    global check_thread_checkWifi
     
     if processName == "check_booting":
         check_booting = checked
@@ -561,6 +608,8 @@ def processCheckList(processName,checked):
         check_thread_received_socket = checked
     elif processName == "check_thread_processRecv":
         check_thread_processRecv = checked
+    elif processName == "check_thread_checkWifi":
+        check_thread_checkWifi = checked
     
     checkList = f"""
     booting             :   {check_booting}
@@ -573,6 +622,7 @@ def processCheckList(processName,checked):
     =THEAD=
     receiced_socket()   :   {check_thread_received_socket}
     processRecv()       :   {check_thread_processRecv}
+    checkWifi()         :   {check_thread_checkWifi}
     """
     
     print(checkList)
