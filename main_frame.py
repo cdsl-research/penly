@@ -128,6 +128,7 @@ def check_wifi_thread():
     processCheckList("check_thread_checkWifi",True)
     global wifi
     global CURRENT_CONNECT_TO_ESP32
+    global NEEDING_CONNECT_ESP32
     ERROR_COUNT = 0
     while True:
         try:
@@ -147,7 +148,10 @@ def check_wifi_thread():
                     print(f"""
                         * * * * wifiの接続状態の確認取れず COUNT={ERROR_COUNT} 再接続処理 * * * *  
                     """)
+                    for k,v in NEEDING_CONNECT_ESP32.items():
+                        NEEDING_CONNECT_ESP32[k] = False
                     init_network()
+                    
                 else:
                     print(f"""
                     * * * * wifiの接続状態の確認取れず : ERROR_COUNT = {ERROR_COUNT} (2回で再接続) * * * 
@@ -428,6 +432,7 @@ def sendSocket(ipAdress,sendData):
         print(e)
         print(" **** ３秒後に再度やり直します ****")
         utime.sleep(3)
+        ipAdress = wifi.ifconfig()[2]
         sendSocket(ipAdress,sendData)
     
 def received_socket():
