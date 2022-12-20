@@ -147,10 +147,13 @@ def check_wifi_thread():
                     ERROR_COUNT = 0
                     print(f"""
                         * * * * wifiの接続状態の確認取れず COUNT={ERROR_COUNT} 再接続処理 * * * *  
+                        * * * * * 再起動 * * * * *
                     """)
-                    for k,v in NEEDING_CONNECT_ESP32.items():
-                        NEEDING_CONNECT_ESP32[k] = False
-                    init_network()
+                    p2.off()
+                    blue.off()
+                    red.off()
+                    green.off()
+                    machine.reset()
                     
                 else:
                     print(f"""
@@ -160,10 +163,14 @@ def check_wifi_thread():
         except Exception as e:
             print("""\n
             * * * * * CHECK_WIFI_THREADで重大なエラーが発生 * * * * *
-            * * * * * THREADを継続させるためTHEADを停止します * * * * *
+            * * * * * 再起動 * * * * *
             """)
-            # Whileから脱出
-            break
+            p2.off()
+            blue.off()
+            red.off()
+            green.off()
+            machine.reset()
+            
 
 
 # Wi-Fiスキャン
@@ -495,7 +502,7 @@ def check_init_remaing_esp32():
         print("\nESP32の全ての接続と更新を完了します")
         processCheckList("check_esp_allconnect",True)
         #危険なのでコメントアウト
-        #_thread.start_new_thread(check_wifi_thread,())
+        _thread.start_new_thread(check_wifi_thread,())
         return True
 
 
@@ -536,6 +543,7 @@ def check_connected_from_esp32():
 def init_network():
     global AP_SSID
     global ap
+    
     # 研究室Wi-Fiに繋げられるなら繋げる
     # 繋げられない場合はESP32を探す
     labConnectedFlag = wifi_scan()
@@ -643,8 +651,23 @@ def main():
     print(" --- キャッシュデータ削除処理 ---")
     deleteCashFile()
     
-    # 初回のトポロジー設定
-    init_network()
+    print("init_flag.pyを実行")
+    execfile("init_flag.py")
+    if INIT_FLAG == False:
+        print(": : : : : 未初期化 = 初期化開始 : : : : : ")
+        # 初回のトポロジー設定
+        init_network()
+        try:
+            file = open("init_flag.py","w")
+            file.write("INIT_FLAG = True")
+            print(" * * * * INIT_FLAGをTrueに変更 * * * * ")
+        except Exception as e:
+            print(f"INIT_FLAG.py ERROR : {e}")
+        finally:
+            file.close()
+    else:
+        print(": : : : : 初期化済み : : : : : ")
+        
 
 
 if __name__ ==  "__main__":
