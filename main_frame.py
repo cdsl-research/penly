@@ -349,7 +349,9 @@ def processRecv():
                     sendSocket(ipAdressN,sendText)
                 print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
                 execfile("autowifi.py")
-            pass
+            elif command_origin == "experiment_start":
+                print("\n- - - - 実験を開始します - - - - -")
+                _thread.start_new_thread(measureCurrent,())
         utime.sleep(0.5)
 
 
@@ -725,8 +727,9 @@ def measureCurrent():
         if DEFAULT_LAB_CONNECT == True:
             httpBatteryPost(AP_SSID,str(battery) ,str(LAMI_COST))
         else:
-            msg = "id:" + AP_SSID + ",command:sending" + ",data:"+ str(battery) + ",to:server" + ",weight:" + str(LAMI_COST)
-            sendSocket(msg)
+            msg = f"id={AP_SSID}&command_origin=sending&data={str(battery)}&to=server&weight={str(LAMI_COST)}&id_origin={AP_SSID}"
+            sendIpAdress = wifi.ifconfig()[2]
+            sendSocket(sendIpAdress,msg)
         writeFileBattery(str(battery))
         f = open('battery.csv', 'a')
         f.write(str(batteryData))
