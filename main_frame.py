@@ -10,6 +10,8 @@ import urequests
 import ujson
 import random
 
+#WIFICHECK_THREADのWhile保持関数
+FLAG_CHECK_WIFI_ENABLE = True
 # 自身のAPのSSIDを保持
 AP_SSID = ""
 # 自身のIPアドレス
@@ -130,47 +132,47 @@ def check_wifi_thread():
     global CURRENT_CONNECT_TO_ESP32
     global NEEDING_CONNECT_ESP32
     ERROR_COUNT = 0
-    while True:
-        try:
-            wifiList = wifi.scan()
-            wifiSsidList = list()
-            for wl in wifiList:
-                wifiSsidList.append(wl[0].decode("utf-8"))
-            flaflag = True
-            for wl in wifiSsidList:
-                if wl != "":
-                    if wl in CURRENT_CONNECT_TO_ESP32:
-                        flaflag = False
-            if flaflag:
-                ERROR_COUNT += 1
-                if ERROR_COUNT == 2:
-                    ERROR_COUNT = 0
-                    print(f"""
-                        * * * * wifiの接続状態の確認取れず COUNT={ERROR_COUNT} 再接続処理 * * * *  
-                        * * * * * 再起動 * * * * *
-                    """)
-                    p2.off()
-                    blue.off()
-                    red.off()
-                    green.off()
-                    machine.reset()
-                    
-                else:
-                    print(f"""
-                    * * * * wifiの接続状態の確認取れず : ERROR_COUNT = {ERROR_COUNT} (2回で再接続) * * * 
-                    """)
-            utime.sleep(1)
-        except Exception as e:
-            print("""\n
-            * * * * * CHECK_WIFI_THREADで重大なエラーが発生 * * * * *
-            * * * * * 再起動 * * * * *
-            """)
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
-            
+    while FLAG_CHECK_WIFI_ENABLE:
+        if wifi.isconnected() == False:
+            print(" ----- Wi-Fiの切断を検知  再接続試行----- ")
+            red.on()
+            wifi.disconnect()
+            utime.sleep(0.5)
+            # 重さの返信が終わって，まだWi-Fiに接続していないデバイスがあればそちらに接続する
+            if DEFAULT_LAB_CONNECT == False:
+                print("----- 接続可能先が他にないかチェック ------")
+                endFlag = False
+                wifi.disconnect()
+                for k,v in CURRENT_CONNECT_TO_ESP32.items():
+                    CURRENT_CONNECT_TO_ESP32[k] = False
+                wifiList = wifi.scan()
+                wifiSsidList = list()
+                for wl in wifiList:
+                    wifiSsidList.append(wl[0].decode("utf-8"))
+                print(wifiSsidList)
+                for k in wifiSsidList:
+                    if k in NEEDING_CONNECT_ESP32:
+                        print(f"[{k}]に接続",end="")
+                        #wifi = esp_connect_wifi("w")
+                        wifi = network.WLAN(network.STA_IF)
+                        wifi.active(True)
+                        wifi.connect(k)
+                        for _ in range(10):
+                            if wifi.isconnected():
+                                p2.on()
+                                print(f"接続完了\n>>>>>>{wifi.ifconfig()}")
+                                sendIpAdress = wifi.ifconfig()[2]
+                                sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}&route={AP_SSID}"
+                                sendSocket(sendIpAdress ,sendData)
+                                CURRENT_CONNECT_TO_ESP32[k] = True
+                                endFlag = True
+                                break
+                            else:
+                                print(" . ",end="")
+                                utime.sleep(0.5)
+                    if endFlag == True:
+                        break
+        utime.sleep(2)
 
 
 # Wi-Fiスキャン
@@ -502,7 +504,7 @@ def check_init_remaing_esp32():
         print("\nESP32の全ての接続と更新を完了します")
         processCheckList("check_esp_allconnect",True)
         #危険なのでコメントアウト
-        #_thread.start_new_thread(check_wifi_thread,())
+        _thread.start_new_thread(check_wifi_thread,())
         return True
 
 

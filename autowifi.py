@@ -26,6 +26,9 @@ wifiStatus = True
 wifi = network.WLAN(network.STA_IF)
 wifi.active(True)
 
+FLAG_CHECK_WIFI_ENABLE = False
+utime.sleep(2)
+
 # アクセスポイントの検索
 
 
