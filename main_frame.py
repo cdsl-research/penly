@@ -585,6 +585,151 @@ def init_network():
         init_network()
 
 
+def httpBatteryPost(idName,sendingData,weight):
+    global BATTERY
+    url = "http://192.168.100.236:5000/battery_recieve"
+    try:
+        blue.on()
+        print(f" --- サーバへ電池残量を送信 >>> ESP32 : {idName} , 電池残量 : {sendingData} , 重み : {weight}---")
+        
+        print(f"""
+            ==== HTTPPOSTの送信前確認 ====
+            AP_SSID : {AP_SSID}
+        """)
+        
+        sendData = {
+            "data" : sendingData,
+            "espid" : AP_SSID,
+            "weight" : str(weight)
+        }
+        
+        url += "?"
+        
+        for sdk,sdv in sendData.items():
+            url += sdk + "=" + sdv + "&"
+        print(url)
+        res = urequests.get(url)
+        print("サーバからのステータスコード：", res.status_code)
+        res.close()
+        blue.off()
+    except Exception as e:
+        print(e)
+        print("@@@@@ サーバへの送信が失敗．スキップします @@@@@")
+
+# 電池残量のデータ送信間隔[秒]
+BATTERY_SLEEP_INTERVAL = 10
+def getCurrent():
+    current = ina.current()
+    current = abs(current)
+    while True:
+        if current < 170:
+            break
+        current = current - (current / 5)
+    print("Current: %.3f mA" % current)
+    return current
+
+# サーバに電池残量を送信
+# その際に必ず電池残量から測定した電流を引くこと
+def currentAverageMeasure():
+    currentSum = 0.0
+    currentAverage = 0.0
+    countSum = 0.0
+    while countSum < BATTERY_SLEEP_INTERVAL:
+        green.on()
+        current = getCurrent()
+        current = abs(current)
+        currentSum += current
+        countSum += 1.0
+        green.off()
+        utime.sleep(1)
+
+    currentAverage = currentSum / countSum
+    return currentAverage
+
+def readFileBattery():
+    # 読込むファイルのパスを宣言する
+    file_name = "battery.txt"
+    try:
+        file = open(file_name)
+        data = file.read()
+        return data
+    except Exception as e:
+        print(e)
+    finally:
+        file.close()
+
+def writeFileBattery(writeData):
+    # 書き込むファイルのパスを宣言する
+    file_name = "battery.txt"
+    writeData = str(writeData)
+    try:
+        file = open(file_name, 'w')
+        file.write(writeData)
+    except Exception as e:
+        print(e)
+    finally:
+        file.close()
+
+# バッテリーをリセットする
+SET_BATTERY = 10000
+def writeFileResetBatteryAmount():
+    # 書き込むファイルのパスを宣言する
+    print("バッテリー残量を",str(SET_BATTERY),"へリセットしました")
+    file_name = "battery.txt"
+    writeData = str(SET_BATTERY)
+    try:
+        file = open(file_name, 'w')
+        file.write(writeData)
+    except Exception as e:
+        print(e)
+    finally:
+        file.close()
+
+
+# 積層重み
+LAMI_COST = 0
+def measureCurrent():
+    global BATTERY
+    while True:
+        count = 0
+        sumCurrent = 0
+        while count < 30:
+            battery = readFileBattery()
+            battery = float(battery)
+            current = ina.current()
+            current = abs(current)
+            while True:
+                if current < 170:
+                    break
+                current = current - (current / 5)
+            sumCurrent += current
+            iText = "Current: %.3f mA" % current
+            currentData = "%.3f" % current
+            currentData += "\n"
+            print("\r" + str(iText),end="")
+            f = open('current.csv', 'a')
+            f.write(str(currentData))
+            f.close() 
+            count += 1
+            utime.sleep(1)
+            
+        sumCurrent /= 30
+        
+        print(f"---- 60秒間の平均消費電力 : {sumCurrent}[mA]   電池残量残量 : {battery - sumCurrent}[mAh] ----")
+        
+        battery -= sumCurrent
+        batteryData = "%.3f" % battery
+        batteryData += "\n"
+        if DEFAULT_LAB_CONNECT == True:
+            httpBatteryPost(AP_SSID,str(battery) ,str(LAMI_COST))
+        else:
+            msg = "id:" + AP_SSID + ",command:sending" + ",data:"+ str(battery) + ",to:server" + ",weight:" + str(LAMI_COST)
+            sendSocket(msg)
+        writeFileBattery(str(battery))
+        f = open('battery.csv', 'a')
+        f.write(str(batteryData))
+        f.close()
+
 ####### チェックリスト #######
 check_booting = False
 check_wifi = False
