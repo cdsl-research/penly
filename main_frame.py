@@ -502,7 +502,7 @@ def check_init_remaing_esp32():
         print("\nESP32の全ての接続と更新を完了します")
         processCheckList("check_esp_allconnect",True)
         #危険なのでコメントアウト
-        _thread.start_new_thread(check_wifi_thread,())
+        #_thread.start_new_thread(check_wifi_thread,())
         return True
 
 
@@ -653,20 +653,30 @@ def main():
     
     print("init_flag.pyを実行")
     execfile("init_flag.py")
-    if INIT_FLAG == False:
-        print(": : : : : 未初期化 = 初期化開始 : : : : : ")
-        # 初回のトポロジー設定
-        init_network()
-        try:
-            file = open("init_flag.py","w")
-            file.write("INIT_FLAG = True")
-            print(" * * * * INIT_FLAGをTrueに変更 * * * * ")
-        except Exception as e:
-            print(f"INIT_FLAG.py ERROR : {e}")
-        finally:
-            file.close()
-    else:
-        print(": : : : : 初期化済み : : : : : ")
+    init_network()
+    
+    print("\n - - - - ネットワークの初期化完了 - - - - - -")
+    red.off()
+    for _ in range(10):
+        green.on()
+        utime.sleep(0.1)
+        green.off()
+        utime.sleep(0.1)
+    
+    # if INIT_FLAG == False:
+    #     print(": : : : : 未初期化 = 初期化開始 : : : : : ")
+    #     # 初回のトポロジー設定
+    #     init_network()
+    #     try:
+    #         file = open("init_flag.py","w")
+    #         file.write("INIT_FLAG = True")
+    #         print(" * * * * INIT_FLAGをTrueに変更 * * * * ")
+    #     except Exception as e:
+    #         print(f"INIT_FLAG.py ERROR : {e}")
+    #     finally:
+    #         file.close()
+    # else:
+    #     print(": : : : : 初期化済み : : : : : ")
         
 
 
