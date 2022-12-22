@@ -291,7 +291,6 @@ def processRecv():
             if proKey == "id":
                 recvEsp32Id = proValue
                 print(f"受信ESP32のID == {proValue}")
-                CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
             if proKey == "command_origin":
                 command_origin = proValue
             if proKey == "id_origin":
@@ -299,8 +298,14 @@ def processRecv():
             if proKey == "route":
                 temporaryRoute = proValue
                 temporaryRoute += f">{AP_SSID}"
+            if proKey == "battery":
+                battery = proValue
+            if proKey == "to":
+                toSending = proValue
+            if proKey == "weight":
+                weight = proValue
         
-        if recvEsp32Id != "server":
+        if id_origin != "server":
             if command_origin == "autowifi":
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
                 for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
@@ -314,6 +319,7 @@ def processRecv():
                 print(f"宛先 : {rk} <- - -  送り先 : {rv}")
             print(f" - - - - - - - - - - - - - - - - - - - - ")
             if command_origin == "resist":
+                CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
                 REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
                 if DEFAULT_LAB_CONNECT:
                     # 研究室Wi-Fiに接続している場合はサーバへ通知をする
@@ -339,6 +345,14 @@ def processRecv():
                     for k ,v in sendDataIndex.items(): 
                         sendText += f"&{k}={v}"
                     sendSocket(sendIpAdress,sendText)
+            if command_origin == "translate":
+                if toSending == "server":
+                    if DEFAULT_LAB_CONNECT:
+                        httpBatteryPost(id_origin,battery,weight)
+                    else:
+                        msg = f"id={AP_SSID}&command_origin=translate&battery={str(battery)}&to=server&weight={str(weight)}&id_origin={id_origin}"
+                        sendIpAdress = wifi.ifconfig()[2]
+                        sendSocket(sendIpAdress,msg)
         else:
             # サーバから送信された場合の処理
             print("大変！！！サーバから接続されちゃった！！！！")
@@ -351,10 +365,22 @@ def processRecv():
                 execfile("autowifi.py")
             elif command_origin == "experiment_start":
                 print("\n- - - - 実験を開始します - - - - -")
+                sendText = f"id={AP_SSID}&command_origin=experiment_start&id_origin={id_origin}"
+                print("実験スタートを各ESP32に転送します")
+                all_translate_to_ESP32(recvEsp32Id,sendText)
                 _thread.start_new_thread(measureCurrent,())
         utime.sleep(0.5)
 
-
+# 実験開始を接続しているESP32へと伝達している
+# 引数には送信したいデータを格納する
+def all_translate_to_ESP32(recvEsp32Id,sendData):
+    global CURRENT_CONNECTED_FROM_ESP32
+    
+    if CURRENT_CONNECTED_FROM_ESP32:
+        for espName, ipAdress in CURRENT_CONNECTED_FROM_ESP32.items():
+            if espName != "server" or recvEsp32Id != espName:
+                print(f"{espName} : {ipAdress} にデータを送信します")
+                sendSocket(ipAdress,sendData)
 
 # サーバへ転送用
 def resist_ESP32_httpPost(url,sendText,transfer_espid,temporaryRoute):
@@ -602,6 +628,7 @@ def httpBatteryPost(idName,sendingData,weight):
         """)
         
         sendData = {
+            "transfer_espid" : idName,
             "data" : sendingData,
             "espid" : AP_SSID,
             "weight" : str(weight)
@@ -727,7 +754,7 @@ def measureCurrent():
         if DEFAULT_LAB_CONNECT == True:
             httpBatteryPost(AP_SSID,str(battery) ,str(LAMI_COST))
         else:
-            msg = f"id={AP_SSID}&command_origin=sending&data={str(battery)}&to=server&weight={str(LAMI_COST)}&id_origin={AP_SSID}"
+            msg = f"id={AP_SSID}&command_origin=translate&battery={str(battery)}&to=server&weight={str(LAMI_COST)}&id_origin={AP_SSID}"
             sendIpAdress = wifi.ifconfig()[2]
             sendSocket(sendIpAdress,msg)
         writeFileBattery(str(battery))
