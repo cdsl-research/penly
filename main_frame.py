@@ -215,6 +215,7 @@ def wifi_scan():
                     esp_connect_wifi(c_el)
                     if check_thread_received_socket != True:
                         _thread.start_new_thread(received_socket,())
+                        _thread.start_new_thread(received_udp_socket,())
                     if check_thread_processRecv != True:
                         _thread.start_new_thread(processRecv,())
                     return False
@@ -358,17 +359,29 @@ def processRecv():
             print("大変！！！サーバから接続されちゃった！！！！")
             if command_origin == "autowifi":
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
-                for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
-                    sendText = f"id={AP_SSID}&command_origin=autowifi"
-                    sendSocket(ipAdressN,sendText)
+                # for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
+                #     sendText = f"id={AP_SSID}&command_origin=autowifi"
+                #     sendSocket(ipAdressN,sendText)
+                sendText = f"id={AP_SSID}&command_origin=autowifi&id_origin={id_origin}"
+                udp_broadcast_send(sendText)
                 print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
                 execfile("autowifi.py")
             elif command_origin == "experiment_start":
                 print("\n- - - - 実験を開始します - - - - -")
-                sendText = f"id={AP_SSID}&command_origin=experiment_start&id_origin={id_origin}"
+                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                 print("実験スタートを各ESP32に転送します")
-                all_translate_to_ESP32(recvEsp32Id,sendText)
+                # all_translate_to_ESP32(recvEsp32Id,sendText)
+                udp_broadcast_send(sendText)
                 _thread.start_new_thread(measureCurrent,())
+            elif command_origin == "reboot":
+                print(" ********** 再起動 ************")
+                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                udp_broadcast_send(sendText)
+                p2.off()
+                blue.off()
+                red.off()
+                green.off()
+                machine.reset()
         utime.sleep(0.5)
 
 # 実験開始を接続しているESP32へと伝達している
@@ -454,6 +467,20 @@ def httpPost(url,sendText):
         utime.sleep(3)
         httpPost(url,sendText)
 
+def udp_broadcast_send(sendData):
+    # UDPソケットを作成する
+    socksock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # ブロードキャストアドレスを指定する
+    #broadcast_addr = '255.255.255.255'
+    broadcast_addr = ap.ifconfig()[0][:-1] + str(255)
+
+    print(f"データ: {sendData} をブロードキャストにて一斉送信")
+    blue.on()
+    # ブロードキャストアドレスにデータを送信する
+    socksock.sendto(sendData, (broadcast_addr, 8888))
+    blue.off()
+
 
 def sendSocket(ipAdress,sendData,timeout = 3):
     count = 0
@@ -532,7 +559,6 @@ def received_udp_socket():
         green.on()
         addr = addr[0]
         data = conn
-        conn.close()
         str_data = data.decode()
         print(f"{addr} より接続 ---> 受信データ : {str_data}")
         str_data += "?" + addr
@@ -638,6 +664,7 @@ def init_network():
             # ソケット受け取り準備(threadで・・・)
             if check_thread_received_socket != True:
                 _thread.start_new_thread(received_socket,())
+                _thread.start_new_thread(received_udp_socket,())
             if check_thread_processRecv != True:
                 _thread.start_new_thread(processRecv,())
             update_connected_from_esp32()
