@@ -32,6 +32,8 @@ CURRENT_CONNECTED_FROM_ESP32 = {}
 CURRENT_CONNECT_TO_ESP32 = {}
 # デフォルトのバッテリー
 SET_BATTERY = 10000
+# 実験のWHILE文分岐
+EXPERIMENT_ENABLE = True
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -70,6 +72,15 @@ def activate_AP():
     print("(ip,netmask,gw,dns)=" + str(ap.ifconfig()))
     ap.active(True)
     processCheckList("check_ap",True)
+
+def shotdownAP():
+    # print("10秒後にアクセスポイントインターフェースを無効化します")
+    # utime.sleep(10)
+    ap.active(False)
+    red.off()
+    blue.off()
+    processCheckList("check_ap",False)
+    print("@@@@@@@@@ アクセスポイントインターフェースを無効化 @@@@@@@@")
 
 # 研究室Wi-Fiに接続する場合
 def connect_wifi(ssid, passkey, timeout=10):
@@ -270,6 +281,7 @@ def readRecvFile():
 def processRecv():
     global CURRENT_CONNECTED_FROM_ESP32
     global ROUING_TABLE
+    global EXPERIMENT_ENABLE
     processCheckList("check_thread_processRecv",True)
     while True:
         fileData = readRecvFile()
@@ -374,7 +386,16 @@ def processRecv():
                 print("実験スタートを各ESP32に転送します")
                 # all_translate_to_ESP32(recvEsp32Id,sendText)
                 udp_broadcast_send(sendText)
-                _thread.start_new_thread(measureCurrent,())
+                EXPERIMENT_ENABLE = True
+                if not check_thread_experiment:
+                    processCheckList("check_thread_experiment",True)
+                    _thread.start_new_thread(measureCurrent,())
+            elif command_origin == "experiment_stop":
+                print("\n- - - - 実験を***停止***します - - - - -")
+                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                udp_broadcast_send(sendText)
+                EXPERIMENT_ENABLE = False
+                processCheckList("check_thread_experiment",False)
             elif command_origin == "reboot":
                 print(" ********** 再起動 ************")
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
@@ -814,10 +835,10 @@ def writeFileResetBatteryAmount():
 LAMI_COST = 0
 def measureCurrent():
     global BATTERY
-    while True:
+    while EXPERIMENT_ENABLE:
         count = 0
         sumCurrent = 0
-        while count < 30:
+        while count < 30 or EXPERIMENT_ENABLE:
             battery = readFileBattery()
             battery = float(battery)
             current = ina.current()
@@ -865,6 +886,7 @@ check_esp_connected = False # 全てのESP32が接続してきたか？ (CDSLに
 check_thread_received_socket = False
 check_thread_processRecv = False
 check_thread_checkWifi = False
+check_thread_experiment = False
 def processCheckList(processName,checked):
     global check_booting
     global check_wifi
@@ -875,6 +897,7 @@ def processCheckList(processName,checked):
     global check_thread_processRecv
     global check_thread_received_socket
     global check_thread_checkWifi
+    global check_thread_experiment
     
     if processName == "check_booting":
         check_booting = checked
@@ -894,6 +917,8 @@ def processCheckList(processName,checked):
         check_thread_processRecv = checked
     elif processName == "check_thread_checkWifi":
         check_thread_checkWifi = checked
+    elif processName == "check_thread_experiment":
+        check_thread_experiment = checked
     
     checkList = f"""
     booting             :   {check_booting}
@@ -907,6 +932,7 @@ def processCheckList(processName,checked):
     receiced_socket()   :   {check_thread_received_socket}
     processRecv()       :   {check_thread_processRecv}
     checkWifi()         :   {check_thread_checkWifi}
+    experiment()        :   {check_thread_experiment}
     """
     
     print(checkList)
