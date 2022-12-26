@@ -30,6 +30,8 @@ ROUING_TABLE = {}
 CURRENT_CONNECTED_FROM_ESP32 = {}
 # 現在接続しているESP32のIPアドレス
 CURRENT_CONNECT_TO_ESP32 = {}
+# デフォルトのバッテリー
+SET_BATTERY = 10000
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -377,11 +379,16 @@ def processRecv():
                 print(" ********** 再起動 ************")
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                 udp_broadcast_send(sendText)
+                utime.sleep(2)
                 p2.off()
                 blue.off()
                 red.off()
                 green.off()
-                machine.reset()
+            elif command_origin == "reset_battery":
+                writeFileResetBatteryAmount()
+                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                udp_broadcast_send(sendText)
+                
         utime.sleep(0.5)
 
 # 実験開始を接続しているESP32へと伝達している
@@ -789,6 +796,19 @@ def writeFileResetBatteryAmount():
     finally:
         file.close()
 
+# battery.txtの値をデフォルトに修正する
+def writeFileResetBatteryAmount():
+    # 書き込むファイルのパスを宣言する
+    print("バッテリー残量を",str(SET_BATTERY),"へリセットしました")
+    file_name = "battery.txt"
+    writeData = str(SET_BATTERY)
+    try:
+        file = open(file_name, 'w')
+        file.write(writeData)
+    except Exception as e:
+        print(e)
+    finally:
+        file.close()
 
 # 積層重み
 LAMI_COST = 0
