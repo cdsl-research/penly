@@ -380,7 +380,7 @@ def all_translate_to_ESP32(recvEsp32Id,sendData):
         for espName, ipAdress in CURRENT_CONNECTED_FROM_ESP32.items():
             if espName != "server" or recvEsp32Id != espName:
                 print(f"{espName} : {ipAdress} にデータを送信します")
-                sendSocket(ipAdress,sendData)
+                transfer_sendSocket(ipAdress,sendData)
 
 # サーバへ転送用
 def resist_ESP32_httpPost(url,sendText,transfer_espid,temporaryRoute):
@@ -454,24 +454,49 @@ def httpPost(url,sendText):
         utime.sleep(3)
         httpPost(url,sendText)
 
-def sendSocket(ipAdress,sendData):
-    try:
-        print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
-        blue.on()
-        s = socket.socket()
-        s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
-        s.send(sendData)
-        s.close()
-        blue.off()
-        print("Sending Complete!")
-    except Exception as e:
-        print("\n **** ソケット送信で問題が発生 ****")
-        print(e)
-        print(" **** ３秒後に再度やり直します ****")
-        utime.sleep(3)
-        ipAdress = wifi.ifconfig()[2]
-        sendSocket(ipAdress,sendData)
-    
+
+def sendSocket(ipAdress,sendData,timeout = 3):
+    count = 0
+    while count < timeout:
+        try:
+            print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
+            blue.on()
+            s = socket.socket()
+            s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
+            s.send(sendData)
+            s.close()
+            blue.off()
+            print("Sending Complete!")
+            break
+        except Exception as e:
+            count += 1
+            print("\n **** ソケット送信で問題が発生 ****")
+            print(e)
+            print(" **** ３秒後に再度やり直します ****")
+            utime.sleep(3)
+            ipAdress = wifi.ifconfig()[2]
+
+def transfer_sendSocket(ipAdress,sendData,timeout = 1):
+    count = 0
+    while count < timeout:
+        try:
+            print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
+            blue.on()
+            s = socket.socket()
+            s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
+            s.send(sendData)
+            s.close()
+            blue.off()
+            print("Sending Complete!")
+            break
+        except Exception as e:
+            count += 1
+            print("\n **** ソケット送信で問題が発生 ****")
+            print(e)
+            print(" **** ３秒後に再度やり直します ****")
+            utime.sleep(3)
+            
+
 def received_socket():
     listenSocket = socket.socket()
     listenSocket.bind(('', PORT))
