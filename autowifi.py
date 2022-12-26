@@ -130,21 +130,23 @@ def esp_connect_wifi(ssid, timeout=10):
         return ''
 
 
-# 最初に切断処理をしちゃう
-if wifi.ifconfig()[0].split(".")[0] == "192":
-    wifi.disconnect()
-while True:
-    wifiName = wifiscan()
-    if "CDSL" in wifiName:
-        break
-    else:
-        print("Wi-Fiが見つからなかったため再度Wi-Fiをスキャンします")
-while True:
-    if "ESP" not in wifiName:
-        print(wifiName, "founded and Connecting")
-        wifi = connect_wifi(wifiName, SSID_PASS_AUTO[wifiName])
-    elif "ESP" in wifiName:
-        print(wifiName, "founded and Connecting")
-        wifi = esp_connect_wifi(wifiName)
-    if wifi != None:
-        break
+#最初から研究室に接続してたら別にやらなくてよい
+if not DEFAULT_LAB_CONNECT:
+    # 最初に切断処理をしちゃう
+    if wifi.ifconfig()[0].split(".")[0] == "192":
+        wifi.disconnect()
+    while True:
+        wifiName = wifiscan()
+        if "CDSL" in wifiName:
+            break
+        else:
+            print("Wi-Fiが見つからなかったため再度Wi-Fiをスキャンします")
+    while True:
+        if "ESP" not in wifiName:
+            print(wifiName, "founded and Connecting")
+            wifi = connect_wifi(wifiName, SSID_PASS_AUTO[wifiName])
+        elif "ESP" in wifiName:
+            print(wifiName, "founded and Connecting")
+            wifi = esp_connect_wifi(wifiName)
+        if wifi != None:
+            break
