@@ -516,7 +516,28 @@ def received_socket():
         str_data += "?" + addr
         writeRecvFile(str_data)
         green.off()
-        
+
+# UDPソケット受信
+def received_udp_socket():
+    # UDPソケットを作成する
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # ブロードキャストアドレスを受信するためにバインドする
+    sock.bind(('0.0.0.0', 8888))
+
+    while True:
+        print("accepting.....UDPソケット通信待機中......")
+        # データを受信する
+        conn, addr = sock.recvfrom(1024)
+        green.on()
+        addr = addr[0]
+        data = conn
+        conn.close()
+        str_data = data.decode()
+        print(f"{addr} より接続 ---> 受信データ : {str_data}")
+        str_data += "?" + addr
+        writeRecvFile(str_data)
+        green.off()
 
 ### 接続できるESP32の候補を制限する
 
