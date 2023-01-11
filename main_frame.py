@@ -73,7 +73,7 @@ def activate_AP():
     ap.active(True)
     processCheckList("check_ap",True)
 
-def shotdownAP():
+def shutdownAP():
     # print("10秒後にアクセスポイントインターフェースを無効化します")
     # utime.sleep(10)
     ap.active(False)
@@ -401,15 +401,28 @@ def processRecv():
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                 udp_broadcast_send(sendText)
                 utime.sleep(2)
+                EXPERIMENT_ENABLE = False
                 p2.off()
                 blue.off()
                 red.off()
                 green.off()
+                machine.reset()
             elif command_origin == "reset_battery":
                 writeFileResetBatteryAmount()
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                 udp_broadcast_send(sendText)
-                
+            elif command_origin == "startAP":
+                if toSending == ESP32_ID:
+                    activate_AP()
+                else:
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                    udp_broadcast_send(sendText)
+            elif command_origin == "stopAP":
+                if toSending == ESP32_ID:
+                    shutdownAP()
+                else:
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                    udp_broadcast_send(sendText)
         utime.sleep(0.5)
 
 # 実験開始を接続しているESP32へと伝達している
@@ -751,12 +764,24 @@ def httpBatteryPost(idName,sendingData,weight):
 # 電池残量のデータ送信間隔[秒]
 BATTERY_SLEEP_INTERVAL = 10
 def getCurrent():
-    current = ina.current()
-    current = abs(current)
-    while True:
-        if current < 170:
-            break
-        current = current - (current / 5)
+    ## デバッグが完了したらコメントアウトを外す
+    # current = ina.current()
+    # current = abs(current)
+    # while True:
+    #     if current < 170:
+    #         break
+    #     current = current - (current / 5)
+    
+    ## INA219を指していない場合のデバッグよう
+    if ap.active():
+        current = 150
+        randomNumber = random.random()
+        if randomNumber < 0.5:
+            calibrationN = -10 * randomNumber
+        else:
+            calibrationN = 10 * randomNumber / 2
+        current += calibrationN
+    
     print("Current: %.3f mA" % current)
     return current
 
@@ -838,15 +863,35 @@ def measureCurrent():
     while EXPERIMENT_ENABLE:
         count = 0
         sumCurrent = 0
-        while count < 30 or EXPERIMENT_ENABLE:
+        while count < 30:
             battery = readFileBattery()
             battery = float(battery)
-            current = ina.current()
-            current = abs(current)
-            while True:
-                if current < 170:
-                    break
-                current = current - (current / 5)
+            ## デバッグが終わり次第コメントアウトを外す
+            # current = ina.current()
+            # current = abs(current)
+            # while True:
+            #     if current < 170:
+            #         break
+            #     current = current - (current / 5)
+            
+            ### 一時的
+            if ap.active():
+                current = 150
+                randomNumber = random.random()
+                if randomNumber < 0.5:
+                    calibrationN = -10 * randomNumber
+                else:
+                    calibrationN = 10 * randomNumber / 2
+                current += calibrationN
+            else:
+                current = 55
+                randomNumber = random.random()
+                if randomNumber < 0.5:
+                    calibrationN = -10 * randomNumber
+                else:
+                    calibrationN = 10 * randomNumber / 2
+                current += calibrationN
+            ###ここまで
             sumCurrent += current
             iText = "Current: %.3f mA" % current
             currentData = "%.3f" % current
