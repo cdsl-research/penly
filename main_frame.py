@@ -1,4 +1,3 @@
-import bmp280
 import utime
 import network
 import machine
