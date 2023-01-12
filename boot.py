@@ -44,7 +44,15 @@ utime.sleep(1)
 execfile("ctime.py")
 # autowifi.pyはap.pyをコメントアウトしている代わりに入れている
 # execfile("autowifi.py")
-execfile("main_frame.py")
+try:
+    execfile("main_frame.py")
+except Exception as e:
+    print(e)
+    p2.off()
+    blue.off()
+    red.off()
+    green.off()
+    machine.reset()
 
 # try:
 #     execfile("ina219.py")

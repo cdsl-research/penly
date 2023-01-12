@@ -131,7 +131,7 @@ def esp_connect_wifi(ssid, timeout=10):
 
 
 #最初から研究室に接続してたら別にやらなくてよい
-if not DEFAULT_LAB_CONNECT:
+if not DEFAULT_LAB_CONNECT and wifi.ifconfig()[0].split(".")[2] != "100":
     # 最初に切断処理をしちゃう
     if wifi.ifconfig()[0].split(".")[0] == "192":
         wifi.disconnect()
