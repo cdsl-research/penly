@@ -41,6 +41,10 @@ def deleteCashFile():
         if "recv" in fl:
             os.remove(fl)
 
+def randomAddressGenerator():
+    NNN = random.randrange(5,254)
+    return NNN
+
 # APを起動する際はこの関数を実行すること
 def activate_AP():
     global wifi
@@ -53,9 +57,15 @@ def activate_AP():
     print("AP_SSID : ", AP_SSID)
     portBind = 8080 # ソケット通信のポート
     # 192.168.xxx.1のxxxをランダムで設定する
-    randomAddress = random.randrange(5,254)
+    randomAddress = randomAddressGenerator()
     IP = "192.168." + str(randomAddress) + ".1"
     print(f"設定されるアクセスポイントIP : {IP}")
+    if randomAddress == wifi.ifconfig()[0].split(".")[2]:
+        while randomAddress == wifi.ifconfig()[0].split(".")[2]:
+            print(f"現在接続中のIP : {wifi.ifconfig()[0]} と競合が発生したため再度IPアドレスを設定します")
+            randomAddress = randomAddressGenerator()
+            IP = "192.168." + str(randomAddress) + ".1"
+            print(f"設定されるアクセスポイントIP : {IP}")
     count_local = 0
     while count_local < 100:
         try:
@@ -281,6 +291,10 @@ def processRecv():
     global CURRENT_CONNECTED_FROM_ESP32
     global ROUING_TABLE
     global EXPERIMENT_ENABLE
+    
+    ## 複数回同じ処理をしないようにするためのロック処理を実施
+    lock_def_name = ""
+    
     processCheckList("check_thread_processRecv",True)
     while True:
         fileData = readRecvFile()
@@ -395,7 +409,8 @@ def processRecv():
         else:
             # サーバから送信された場合の処理
             print("大変！！！サーバから接続されちゃった！！！！")
-            if command_origin == "autowifi":
+            if command_origin == "autowifi" and lock_def_name != "autowifi":
+                lock_def_name = "autowifi"
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
                 EXPERIMENT_ENABLE = False
                 print("******* EXPERIMATATIONを停止します ********")
@@ -420,11 +435,14 @@ def processRecv():
                 else:
                     print("---** 既にEXPETIMENTIONは起動しています **---")
             elif command_origin == "experiment_stop":
-                print("\n- - - - 実験を***停止***します - - - - -")
-                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                udp_broadcast_send(sendText)
-                EXPERIMENT_ENABLE = False
-                processCheckList("check_thread_experiment",False)
+                if EXPERIMENT_ENABLE:
+                    print("\n- - - - 実験を***停止***します - - - - -")
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                    udp_broadcast_send(sendText)
+                    EXPERIMENT_ENABLE = False
+                    processCheckList("check_thread_experiment",False)
+                else:
+                    print("- - - 既に実験は停止されているためスキップします - - - ")
             elif command_origin == "reboot":
                 print(" ********** 再起動 ************")
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
@@ -436,17 +454,20 @@ def processRecv():
                 red.off()
                 green.off()
                 machine.reset()
-            elif command_origin == "reset_battery":
+            elif command_origin == "reset_battery" and lock_def_name != "reset_battery":
+                lock_def_name = "reset_battery"
                 writeFileResetBatteryAmount()
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                 udp_broadcast_send(sendText)
-            elif command_origin == "startAP":
+            elif command_origin == "startAP" and lock_def_name != "startAP":
+                lock_def_name = "startAP"
                 if toSending == ESP32_ID:
                     activate_AP()
                 else:
                     sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
                     udp_broadcast_send(sendText)
-            elif command_origin == "stopAP":
+            elif command_origin == "stopAP" and lock_def_name != "stopAP":
+                lock_def_name = "stopAP"
                 if toSending == ESP32_ID:
                     shutdownAP()
                 else:
@@ -537,28 +558,31 @@ def httpPost(url,sendText):
         utime.sleep(3)
         httpPost(url,sendText)
 
-def udp_broadcast_send(sendData):
-    # UDPソケットを作成する
-    socksock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+def udp_broadcast_send(sendData,timeout = 3):
+    try:
+        # UDPソケットを作成する
+        socksock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    # ブロードキャストアドレスを指定する
-    #broadcast_addr = '255.255.255.255'
-    broadcast_addr = ap.ifconfig()[0][:-1] + str(255)
+        # ブロードキャストアドレスを指定する
+        #broadcast_addr = '255.255.255.255'
+        broadcast_addr = ap.ifconfig()[0][:-1] + str(255)
 
-    print(f"データ: {sendData} をブロードキャストにて一斉送信")
-    blue.on()
-    # ブロードキャストアドレスにデータを送信する
-    socksock.sendto(sendData, (broadcast_addr, 8888))
-    blue.off()
-    blue.on()
-    # ブロードキャストアドレスにデータを送信する
-    socksock.sendto(sendData, (broadcast_addr, 8888))
-    blue.off()
-    blue.on()
-    # ブロードキャストアドレスにデータを送信する
-    socksock.sendto(sendData, (broadcast_addr, 8888))
-    blue.off()
-
+        print(f"データ: {sendData} をブロードキャストにて一斉送信")
+        blue.on()
+        # ブロードキャストアドレスにデータを送信する
+        socksock.sendto(sendData, (broadcast_addr, 8888))
+        blue.off()
+        blue.on()
+        # ブロードキャストアドレスにデータを送信する
+        socksock.sendto(sendData, (broadcast_addr, 8888))
+        blue.off()
+        blue.on()
+        # ブロードキャストアドレスにデータを送信する
+        socksock.sendto(sendData, (broadcast_addr, 8888))
+        blue.off()
+    except Exception as e:
+        print(" **** UDPソケットのブロードキャスト送信にて問題発生 ****")
+        print(e)
 
 def sendSocket(ipAdress,sendData,timeout = 3):
     count = 0

@@ -5,6 +5,7 @@ from machine import Pin
 import machine
 import network
 import utime
+import urequests
 SSID_NAME_AUTO = ["CDSL-A910-11n"]
 SSID_PASS_AUTO = {"CDSL-A910-11n": SSID_PASS}
 
@@ -80,6 +81,38 @@ def wifiscan():
         return strongest_esp
 
 
+# サーバへ転送用
+def CDSL_connection_resist():
+    global AP_SSID
+    url = "http://192.168.100.236:5000/cdsl_network_connect"
+    if AP_SSID != "":
+        # 再度SSIDの取得
+        AP_SSID = str(ap.config("essid"))
+    try:
+        blue.on()
+        sendData = {
+            "data" : "cdsl_connection",
+            "espid" : AP_SSID
+        }
+        
+        url += "?"
+        
+        for sdk,sdv in sendData.items():
+            url += sdk + "=" + sdv + "&"
+        print(url)
+        res = urequests.get(url)
+        print("サーバからのステータスコード：", res.status_code)
+        res.close()
+        blue.off()
+    except Exception as e:
+        blue.off()
+        print(" **** サーバへの送信が失敗しました ****")
+        print(e)
+        print(" **** ３秒後に再度やり直します ****")
+        utime.sleep(3)
+        CDSL_connection_resist()
+
+
 # APに接続する場合
 def connect_wifi(ssid, passkey, timeout=10):
     count = 0
@@ -99,6 +132,7 @@ def connect_wifi(ssid, passkey, timeout=10):
         p2.on()
         print(ssid, 'Connected')
         webrepl.start(password='cdsl')
+        CDSL_connection_resist()
         return wifi
     else:
         print(ssid, 'Connection failed!')
