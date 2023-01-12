@@ -67,14 +67,18 @@ def allSendProgram():
     # for espName in espIpList:
     for k,espName in espIpDict.items():
         print("\n\n",espName,"へ送信します")
-        setIpCode = "upydev config -t " + str(espName) + " -p cdsl"
-        setSendProgramCode = "upydev put -rst f -f " + programFile
-        cp = subprocess.run(setIpCode, shell=True)
-        print("returncode:", cp.returncode)
-        cp = subprocess.run(setSendProgramCode,shell=True)
-        print("returncode:", cp.returncode)
-        SEND_CHECK_LIST[k] = True
-        print_checklist()
+        try:
+            setIpCode = "upydev config -t " + str(espName) + " -p cdsl"
+            setSendProgramCode = "upydev put -rst f -f " + programFile
+            cp = subprocess.run(setIpCode, shell=True)
+            print("returncode:", cp.returncode)
+            cp = subprocess.run(setSendProgramCode,shell=True)
+            print("returncode:", cp.returncode)
+            SEND_CHECK_LIST[k] = True
+            print_checklist()
+        except:
+            print("error")
+            print_checklist()
 
 def yamamotoSend(flagSelect):
     ipAddress = "192.168.100.88"
