@@ -22,33 +22,46 @@ espIpList = ["192.168.100.158","192.168.100.164","192.168.100.177","192.168.100.
 #     "sF" : "192.168.100.55"
 # }
 
-# espIpDict = {
-#     "B" : "192.168.100.158",
-#     "A1" : "192.168.100.164",
-#     "A2" : "192.168.100.177",
-#     "A3" : "192.168.100.130",
-#     "A5" : "192.168.100.122",
-#     "sA" : "192.168.100.138",
-#     "sB" : "192.168.100.124",
-#     "sC" : "192.168.100.173",
-#     "sD" : "192.168.100.147",
-#     "sE" : "192.168.100.46",
-#     "sF" : "192.168.100.55"
-# }
-
 espIpDict = {
     "B" : "192.168.100.158",
     "A1" : "192.168.100.164",
     "A2" : "192.168.100.177",
+    "A3" : "192.168.100.130",
     "A5" : "192.168.100.122",
-    "sA" : "192.168.100.138"
+    "sA" : "192.168.100.138",
+    "sB" : "192.168.100.124",
+    "sC" : "192.168.100.173",
+    "sD" : "192.168.100.147",
+    "sE" : "192.168.100.46",
+    "sF" : "192.168.100.55"
 }
+
+# espIpDict = {
+#     "B" : "192.168.100.158",
+#     "A1" : "192.168.100.164",
+#     "A2" : "192.168.100.177",
+#     "A5" : "192.168.100.122",
+#     "sA" : "192.168.100.138"
+# }
 
 
 
 #subprocess.run("ls -l", shell=True)
 
+SEND_CHECK_LIST = dict()
+
+def init_checklist():
+    for k, v in espIpDict.items():
+        SEND_CHECK_LIST[k] = False
+
+def print_checklist():
+    print("---")
+    for k, v in SEND_CHECK_LIST.items():
+        print(f"{k} : {v}")
+    print("---")
+
 def allSendProgram():
+    init_checklist()
     programFile = str(args[1])
     print(f"送信ファイルは[{programFile}]です")
     # for espName in espIpList:
@@ -60,6 +73,8 @@ def allSendProgram():
         print("returncode:", cp.returncode)
         cp = subprocess.run(setSendProgramCode,shell=True)
         print("returncode:", cp.returncode)
+        SEND_CHECK_LIST[k] = True
+        print_checklist()
 
 def yamamotoSend(flagSelect):
     ipAddress = "192.168.100.88"
