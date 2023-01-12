@@ -397,6 +397,8 @@ def processRecv():
             print("大変！！！サーバから接続されちゃった！！！！")
             if command_origin == "autowifi":
                 print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
+                EXPERIMENT_ENABLE = False
+                print("******* EXPERIMATATIONを停止します ********")
                 # for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
                 #     sendText = f"id={AP_SSID}&command_origin=autowifi"
                 #     sendSocket(ipAdressN,sendText)
@@ -405,15 +407,18 @@ def processRecv():
                 print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
                 execfile("autowifi.py")
             elif command_origin == "experiment_start":
-                print("\n- - - - 実験を開始します - - - - -")
-                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                print("実験スタートを各ESP32に転送します")
-                # all_translate_to_ESP32(recvEsp32Id,sendText)
-                udp_broadcast_send(sendText)
-                EXPERIMENT_ENABLE = True
                 if not check_thread_experiment:
-                    processCheckList("check_thread_experiment",True)
-                    _thread.start_new_thread(measureCurrent,())
+                    print("\n- - - - 実験を開始します - - - - -")
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                    print("実験スタートを各ESP32に転送します")
+                    # all_translate_to_ESP32(recvEsp32Id,sendText)
+                    udp_broadcast_send(sendText)
+                    EXPERIMENT_ENABLE = True
+                    if not check_thread_experiment:
+                        processCheckList("check_thread_experiment",True)
+                        _thread.start_new_thread(measureCurrent,())
+                else:
+                    print("---** 既にEXPETIMENTIONは起動しています **---")
             elif command_origin == "experiment_stop":
                 print("\n- - - - 実験を***停止***します - - - - -")
                 sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
