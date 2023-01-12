@@ -359,6 +359,31 @@ def processRecv():
                     for k ,v in sendDataIndex.items(): 
                         sendText += f"&{k}={v}"
                     sendSocket(sendIpAdress,sendText)
+            if command_origin == "resist_complete":
+                if DEFAULT_LAB_CONNECT:
+                    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                    url = "http://192.168.100.236:5000/init_network_recieve"
+                    sendText = "resist_complete"
+                    resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
+                    update_connected_from_esp32()
+                    check_connected_from_esp32()
+                else:
+                    sendIpAdress = wifi.ifconfig()[2]
+                    # id = 送り元
+                    # command_origin = resist (登録)
+                    # sub_com = サブコマンド
+                    # id_origin = 送り元の紀元
+                    # route = たどってきた経路
+                    sendDataIndex = {
+                        "command_origin" : command_origin,
+                        "sub_com" : "transfer",
+                        "id_origin" : id_origin,
+                        "route" : temporaryRoute
+                    }
+                    sendText = f"id={AP_SSID}"
+                    for k ,v in sendDataIndex.items(): 
+                        sendText += f"&{k}={v}"
+                    sendSocket(sendIpAdress,sendText)
             if command_origin == "translate":
                 if toSending == "server":
                     if DEFAULT_LAB_CONNECT:
@@ -516,6 +541,14 @@ def udp_broadcast_send(sendData):
     broadcast_addr = ap.ifconfig()[0][:-1] + str(255)
 
     print(f"データ: {sendData} をブロードキャストにて一斉送信")
+    blue.on()
+    # ブロードキャストアドレスにデータを送信する
+    socksock.sendto(sendData, (broadcast_addr, 8888))
+    blue.off()
+    blue.on()
+    # ブロードキャストアドレスにデータを送信する
+    socksock.sendto(sendData, (broadcast_addr, 8888))
+    blue.off()
     blue.on()
     # ブロードキャストアドレスにデータを送信する
     socksock.sendto(sendData, (broadcast_addr, 8888))
@@ -996,6 +1029,10 @@ def main():
     init_network()
     
     print("\n - - - - ネットワークの初期化完了 - - - - - -")
+    if wifi.ifconfig()[0].split(".")[2] != "100":
+        sendIpAdress = wifi.ifconfig()[2]
+        sendData = f"id={AP_SSID}&command_origin=resist_complete&id_origin={AP_SSID}&route={AP_SSID}"
+        sendSocket(sendIpAdress,sendData)
     red.off()
     for _ in range(10):
         green.on()
