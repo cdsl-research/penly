@@ -200,17 +200,14 @@ def check_wifi_thread():
         print(e)
         print(f"""
             !!!!!!! THREAD check_wifi()にて問題発生 !!!!!!
-            autowifi.pyを実行
+            再起動します
             """)
-        execfile("autowifi.py")
         
-        if wifi.ifconfig()[0].split(".")[2] != "100":
-            print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
+        p2.off()
+        blue.off()
+        red.off()
+        green.off()
+        machine.reset()
 
 
 # Wi-Fiスキャン
@@ -494,17 +491,14 @@ def processRecv():
         print(e)
         print(f"""
             !!!!!!! THREAD process()にて問題発生 !!!!!!
-            autowifi.pyを実行
+            再起動します
             """)
-        execfile("autowifi.py")
         
-        if wifi.ifconfig()[0].split(".")[2] != "100":
-            print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
+        p2.off()
+        blue.off()
+        red.off()
+        green.off()
+        machine.reset()
 
 # 実験開始を接続しているESP32へと伝達している
 # 引数には送信したいデータを格納する
@@ -719,17 +713,14 @@ def received_udp_socket():
         print(e)
         print(f"""
             !!!!!!! THREAD received_udp_socket()にて問題発生 !!!!!!
-            autowifi.pyを実行
+            再起動します
             """)
-        execfile("autowifi.py")
         
-        if wifi.ifconfig()[0].split(".")[2] != "100":
-            print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
+        p2.off()
+        blue.off()
+        red.off()
+        green.off()
+        machine.reset()
 
 ### 接続できるESP32の候補を制限する
 
@@ -989,7 +980,7 @@ def measureCurrent():
         while EXPERIMENT_ENABLE:
             count = 0
             sumCurrent = 0
-            while count < 30:
+            while count < 30 and EXPERIMENT_ENABLE:
                 battery = readFileBattery()
                 battery = float(battery)
                 ## デバッグが終わり次第コメントアウトを外す
@@ -1050,17 +1041,14 @@ def measureCurrent():
         print(e)
         print(f"""
             !!!!!!! THREAD measureCurrent()にて問題発生 !!!!!!
-            autowifi.pyを実行
+            再起動します
             """)
-        execfile("autowifi.py")
         
-        if wifi.ifconfig()[0].split(".")[2] != "100":
-            print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
+        p2.off()
+        blue.off()
+        red.off()
+        green.off()
+        machine.reset()
 
 ####### チェックリスト #######
 check_booting = False
