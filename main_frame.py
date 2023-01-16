@@ -116,7 +116,7 @@ def connect_wifi(ssid, passkey, timeout=10):
         return ''
 
 # ESPに接続する場合(PASSなし)
-def esp_connect_wifi(ssid, timeout=10):
+def esp_connect_wifi(ssid, timeout=20):
     global CURRENT_CONNECT_TO_ESP32
     count = 0
     wifi = network.WLAN(network.STA_IF)
@@ -422,7 +422,7 @@ def processRecv():
             else:
                 # サーバから送信された場合の処理
                 print("大変！！！サーバから接続されちゃった！！！！")
-                if command_origin == "autowifi" and lock_def_name != "autowifi":
+                if command_origin == "autowifi":
                     lock_def_name = "autowifi"
                     print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
                     EXPERIMENT_ENABLE = False
@@ -467,19 +467,19 @@ def processRecv():
                     red.off()
                     green.off()
                     machine.reset()
-                elif command_origin == "reset_battery" and lock_def_name != "reset_battery":
-                    lock_def_name = "reset_battery"
+                elif command_origin == "reset_battery":
                     writeFileResetBatteryAmount()
+                    lock_def_name = "reset_battery"
                     sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                     udp_broadcast_send(sendText)
-                elif command_origin == "startAP" and lock_def_name != "startAP":
+                elif command_origin == "startAP":
                     lock_def_name = "startAP"
                     if toSending == ESP32_ID:
                         activate_AP()
                     else:
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
                         udp_broadcast_send(sendText)
-                elif command_origin == "stopAP" and lock_def_name != "stopAP":
+                elif command_origin == "stopAP":
                     lock_def_name = "stopAP"
                     if toSending == ESP32_ID:
                         shutdownAP()
@@ -653,6 +653,7 @@ def transfer_sendSocket(ipAdress,sendData,timeout = 1):
 
 def received_socket():
     try:
+        beforeReceivedData = ""
         listenSocket = socket.socket()
         listenSocket.bind(('', PORT))
         listenSocket.listen(5)
@@ -667,10 +668,15 @@ def received_socket():
             data = conn.recv(1024)
             conn.close()
             str_data = data.decode()
-            print(f"{addr} より接続 ---> 受信データ : {str_data}")
-            str_data += "?" + addr
-            writeRecvFile(str_data)
-            green.off()
+            if beforeReceivedData != str_data:
+                beforeReceivedData = str_data
+                print(f"{addr} より接続 ---> 受信データ : {str_data}")
+                str_data += "?" + addr
+                writeRecvFile(str_data)
+                green.off()
+            else:
+                print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
+                green.off()
     except Exception as e:
         print(e)
         print(f"""
@@ -691,6 +697,7 @@ def received_socket():
 # UDPソケット受信
 def received_udp_socket():
     try:
+        beforeReceivedData = ""
         # UDPソケットを作成する
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -705,10 +712,16 @@ def received_udp_socket():
             addr = addr[0]
             data = conn
             str_data = data.decode()
-            print(f"{addr} より接続 ---> 受信データ : {str_data}")
-            str_data += "?" + addr
-            writeRecvFile(str_data)
-            green.off()
+            if beforeReceivedData != str_data:
+                beforeReceivedData = str_data
+                print(f"{addr} より接続 ---> 受信データ : {str_data}")
+                str_data += "?" + addr
+                writeRecvFile(str_data)
+                green.off()
+            else:
+                print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
+                green.off()
+            utime.sleep(1)
     except Exception as e:
         print(e)
         print(f"""
