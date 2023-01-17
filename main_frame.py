@@ -250,7 +250,8 @@ def wifi_scan():
                     esp_connect_wifi(c_el)
                     if check_thread_received_socket != True:
                         _thread.start_new_thread(received_socket,())
-                        _thread.start_new_thread(received_udp_socket,())
+                        if DEFAULT_LAB_CONNECT:
+                            _thread.start_new_thread(received_udp_socket,())
                     if check_thread_processRecv != True:
                         _thread.start_new_thread(processRecv,())
                     return False
@@ -859,7 +860,8 @@ def init_network():
             # ソケット受け取り準備(threadで・・・)
             if check_thread_received_socket != True:
                 _thread.start_new_thread(received_socket,())
-                _thread.start_new_thread(received_udp_socket,())
+                if DEFAULT_LAB_CONNECT:
+                    _thread.start_new_thread(received_udp_socket,())
             if check_thread_processRecv != True:
                 _thread.start_new_thread(processRecv,())
             update_connected_from_esp32()
