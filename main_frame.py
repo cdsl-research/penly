@@ -339,26 +339,27 @@ def processRecv():
             id_origin = ""
             temporaryRoute = ""
             for fspd in fileDataProcessData:
-                fspdSplit = fspd.split("=")
-                proKey = fspdSplit[0]
-                proValue = fspdSplit[1]
-                print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
-                if proKey == "id":
-                    recvEsp32Id = proValue
-                    print(f"受信ESP32のID == {proValue}")
-                if proKey == "command_origin":
-                    command_origin = proValue
-                if proKey == "id_origin":
-                    id_origin = proValue
-                if proKey == "route":
-                    temporaryRoute = proValue
-                    temporaryRoute += f">{AP_SSID}"
-                if proKey == "battery":
-                    battery = proValue
-                if proKey == "to":
-                    toSending = proValue
-                if proKey == "weight":
-                    weight = proValue
+                if fspd == " " or fspd == "":
+                    fspdSplit = fspd.split("=")
+                    proKey = fspdSplit[0]
+                    proValue = fspdSplit[1]
+                    print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
+                    if proKey == "id":
+                        recvEsp32Id = proValue
+                        print(f"受信ESP32のID == {proValue}")
+                    if proKey == "command_origin":
+                        command_origin = proValue
+                    if proKey == "id_origin":
+                        id_origin = proValue
+                    if proKey == "route":
+                        temporaryRoute = proValue
+                        temporaryRoute += f">{AP_SSID}"
+                    if proKey == "battery":
+                        battery = proValue
+                    if proKey == "to":
+                        toSending = proValue
+                    if proKey == "weight":
+                        weight = proValue   
             
             if id_origin != "server":
                 if command_origin == "autowifi":
