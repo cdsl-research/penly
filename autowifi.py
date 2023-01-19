@@ -184,3 +184,8 @@ if not DEFAULT_LAB_CONNECT and wifi.ifconfig()[0].split(".")[2] != "100":
             wifi = esp_connect_wifi(wifiName)
         if wifi != None:
             break
+
+try:
+    _thread.start_new_thread(received_udp_socket,())
+except:
+    print("received_udp_socketエラースキップ")

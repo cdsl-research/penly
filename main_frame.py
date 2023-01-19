@@ -159,12 +159,14 @@ def check_wifi_thread():
             if wifi.isconnected() == False:
                 print(" ----- Wi-Fiの切断を検知  再接続試行----- ")
                 red.on()
+                disconnect_report()
                 wifi.disconnect()
                 utime.sleep(0.5)
                 # 重さの返信が終わって，まだWi-Fiに接続していないデバイスがあればそちらに接続する
                 if DEFAULT_LAB_CONNECT == False:
                     print("----- 接続可能先が他にないかチェック ------")
                     endFlag = False
+                    disconnect_report()
                     wifi.disconnect()
                     for k,v in CURRENT_CONNECT_TO_ESP32.items():
                         CURRENT_CONNECT_TO_ESP32[k] = False
@@ -186,7 +188,7 @@ def check_wifi_thread():
                                     print(f"接続完了\n>>>>>>{wifi.ifconfig()}")
                                     sendIpAdress = wifi.ifconfig()[2]
                                     sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}&route={AP_SSID}"
-                                    sendSocket(sendIpAdress ,sendData)
+                                    resistSendSocket(sendIpAdress ,sendData)
                                     CURRENT_CONNECT_TO_ESP32[k] = True
                                     endFlag = True
                                     break
@@ -245,6 +247,7 @@ def wifi_scan():
                 if NEEDING_CONNECT_ESP32[c_el] == False:
                     print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
                     p2.off()
+                    disconnect_report()
                     wifi.disconnect()
                     utime.sleep(1)
                     esp_connect_wifi(c_el)
@@ -258,6 +261,18 @@ def wifi_scan():
         else:
             print("接続できるネットワーク環境がありません")
             return 0
+
+
+### Wi-Fiを切断する際にESP32へ切断メッセージを送る ###
+def disconnect_report():
+    if not DEFAULT_LAB_CONNECT:
+        ipAdress = wifi.ifconfig()[2]
+        if ipAdress.split(".")[1] != "0" or ipAdress.split(".")[1] != 0:
+            print(f" --- 接続中の {wifi.ifconfig()[2]} へ切断レポートを送信します ---")
+            
+            sendData = f"id={AP_SSID}&command_origin=disconnect_report&id_origin={AP_SSID}"
+            sendSocket(ipAdress,sendData,1)
+            print(" --- 送信完了 >>> Wi-Fi切断処理開始 ---")
 
 
 
@@ -420,6 +435,11 @@ def processRecv():
                             msg = f"id={AP_SSID}&command_origin=translate&battery={str(battery)}&to=server&weight={str(weight)}&id_origin={id_origin}"
                             sendIpAdress = wifi.ifconfig()[2]
                             sendSocket(sendIpAdress,msg)
+                if command_origin == "disconnect_report":
+                    print(f"###  {recvEsp32Id} から切断レポート検知 ###")
+                    del CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id]
+                    print(f"""     削除実行完了
+                        {CURRENT_CONNECTED_FROM_ESP32}""")
             else:
                 # サーバから送信された場合の処理
                 print("大変！！！サーバから接続されちゃった！！！！")
@@ -633,6 +653,9 @@ def sendSocket_tcp_broadcast(ipAdress,sendData):
 
 def sendSocket(ipAdress,sendData,timeout = 3):
     count = 0
+    if ipAdress.split(".")[1] == "0" or ipAdress.split(".")[1] == 0:
+        print(f"IPアドレス {ipAdress}が定義されていないためスキップ")
+        return "IP_NOT DEFINE"
     while count < timeout:
         try:
             print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
@@ -650,10 +673,36 @@ def sendSocket(ipAdress,sendData,timeout = 3):
             print(e)
             print(" **** 5秒後に再度やり直します ****")
             utime.sleep(5)
+
+def resistSendSocket(ipAdress,sendData,timeout = 3):
+    count = 0
+    # if ipAdress.split(".")[1] != "0" or ipAdress.split(".")[1] != 0:
+    #     print(f"IPアドレス {ipAdress}が定義されていないためスキップ")
+    #     return "IP_NOT DEFINE"
+    while count < timeout:
+        try:
+            print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
+            blue.on()
+            s = socket.socket()
+            s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
+            s.send(sendData)
+            s.close()
+            blue.off()
+            print("Sending Complete!")
+            break
+        except Exception as e:
+            count += 1
+            print("\n **** ソケット送信で問題が発生 (関数名 : resistSendSocket) ****")
+            print(e)
+            print(" **** 5秒後に再度やり直します ****")
+            utime.sleep(5)
             ipAdress = wifi.ifconfig()[2]
 
 def transfer_sendSocket(ipAdress,sendData,timeout = 1):
     count = 0
+    if ipAdress.split(".")[1] == "0" or ipAdress.split(".")[1] == 0:
+        print(f"IPアドレス {ipAdress}が定義されていないためスキップ")
+        return "IP_NOT DEFINE"
     while count < timeout:
         try:
             print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
@@ -705,7 +754,7 @@ def received_socket():
             !!!!!!! THREAD Received_socket()にて問題発生 !!!!!!
             autowifi.pyを実行
             """)
-        execfile("autowifi.py")
+        # execfile("autowifi.py")
         
         if wifi.ifconfig()[0].split(".")[2] != "100":
             print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
@@ -875,7 +924,7 @@ def init_network():
                     AP_SSID = str(ap.config("essid"))
             sendIpAdress = wifi.ifconfig()[2]
             sendData = f"id={AP_SSID}&command_origin=resist&id_origin={AP_SSID}&route={AP_SSID}"
-            sendSocket(sendIpAdress,sendData)
+            resistSendSocket(sendIpAdress,sendData)
             processCheckList("check_resist",True)
             update_init_remaining_esp32()
             check_init_remaing_esp32()
