@@ -305,201 +305,201 @@ def processRecv():
     global CURRENT_CONNECTED_FROM_ESP32
     global ROUING_TABLE
     global EXPERIMENT_ENABLE
-    # try:
-    ## 複数回同じ処理をしないようにするためのロック処理を実施
-    lock_def_name = ""
-    
-    processCheckList("check_thread_processRecv",True)
-    while True:
-        fileData = readRecvFile()
-        if fileData == 0:
-            utime.sleep(0.5)
-            continue
-        fileDataSplit = fileData.split("?")
-        fileData = fileDataSplit[0]
-        addr = fileDataSplit[1]
-        print(f"処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+    try:
+        ## 複数回同じ処理をしないようにするためのロック処理を実施
+        lock_def_name = ""
         
-        fileDataProcessData = fileData.split("&")
-        recvEsp32Id = ""
-        command_origin = None
-        id_origin = ""
-        temporaryRoute = ""
-        for fspd in fileDataProcessData:
-            fspdSplit = fspd.split("=")
-            proKey = fspdSplit[0]
-            proValue = fspdSplit[1]
-            print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
-            if proKey == "id":
-                recvEsp32Id = proValue
-                print(f"受信ESP32のID == {proValue}")
-            if proKey == "command_origin":
-                command_origin = proValue
-            if proKey == "id_origin":
-                id_origin = proValue
-            if proKey == "route":
-                temporaryRoute = proValue
-                temporaryRoute += f">{AP_SSID}"
-            if proKey == "battery":
-                battery = proValue
-            if proKey == "to":
-                toSending = proValue
-            if proKey == "weight":
-                weight = proValue
-        
-        if id_origin != "server":
-            if command_origin == "autowifi":
-                print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
-                for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
-                    sendText = f"id={AP_SSID}&command_origin=autowifi"
-                    sendSocket(ipAdressN,sendText)
-                print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
-                execfile("autowifi.py")
-            ROUING_TABLE[id_origin] = recvEsp32Id
-            print(f" - - - ルーティングテーブルを更新します  - - - ")
-            for rk,rv in ROUING_TABLE.items():
-                print(f"宛先 : {rk} <- - -  送り先 : {rv}")
-            print(f" - - - - - - - - - - - - - - - - - - - - ")
-            if command_origin == "resist":
-                CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
-                REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
-                if DEFAULT_LAB_CONNECT:
-                    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-                    url = "http://192.168.100.236:5000/init_network_recieve"
-                    sendText = "connected"
-                    resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
-                    update_connected_from_esp32()
-                    check_connected_from_esp32()
-                else:
-                    sendIpAdress = wifi.ifconfig()[2]
-                    # id = 送り元
-                    # command_origin = resist (登録)
-                    # sub_com = サブコマンド
-                    # id_origin = 送り元の紀元
-                    # route = たどってきた経路
-                    sendDataIndex = {
-                        "command_origin" : "resist",
-                        "sub_com" : "transfer",
-                        "id_origin" : id_origin,
-                        "route" : temporaryRoute
-                    }
-                    sendText = f"id={AP_SSID}"
-                    for k ,v in sendDataIndex.items(): 
-                        sendText += f"&{k}={v}"
-                    sendSocket(sendIpAdress,sendText)
-            if command_origin == "resist_complete":
-                if DEFAULT_LAB_CONNECT:
-                    # 研究室Wi-Fiに接続している場合はサーバへ通知をする
-                    url = "http://192.168.100.236:5000/init_network_recieve"
-                    sendText = "resist_complete"
-                    resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
-                    update_connected_from_esp32()
-                    check_connected_from_esp32()
-                else:
-                    sendIpAdress = wifi.ifconfig()[2]
-                    # id = 送り元
-                    # command_origin = resist (登録)
-                    # sub_com = サブコマンド
-                    # id_origin = 送り元の紀元
-                    # route = たどってきた経路
-                    sendDataIndex = {
-                        "command_origin" : command_origin,
-                        "sub_com" : "transfer",
-                        "id_origin" : id_origin,
-                        "route" : temporaryRoute
-                    }
-                    sendText = f"id={AP_SSID}"
-                    for k ,v in sendDataIndex.items(): 
-                        sendText += f"&{k}={v}"
-                    sendSocket(sendIpAdress,sendText)
-            if command_origin == "translate":
-                if toSending == "server":
+        processCheckList("check_thread_processRecv",True)
+        while True:
+            fileData = readRecvFile()
+            if fileData == 0:
+                utime.sleep(0.5)
+                continue
+            fileDataSplit = fileData.split("?")
+            fileData = fileDataSplit[0]
+            addr = fileDataSplit[1]
+            print(f"処理データ : {fileData} ,受信IPアドレス[ = addr] :  {addr}\n")
+            
+            fileDataProcessData = fileData.split("&")
+            recvEsp32Id = ""
+            command_origin = None
+            id_origin = ""
+            temporaryRoute = ""
+            for fspd in fileDataProcessData:
+                fspdSplit = fspd.split("=")
+                proKey = fspdSplit[0]
+                proValue = fspdSplit[1]
+                print(f"処理データ KEY : {proKey}     VALUE : {proValue}")
+                if proKey == "id":
+                    recvEsp32Id = proValue
+                    print(f"受信ESP32のID == {proValue}")
+                if proKey == "command_origin":
+                    command_origin = proValue
+                if proKey == "id_origin":
+                    id_origin = proValue
+                if proKey == "route":
+                    temporaryRoute = proValue
+                    temporaryRoute += f">{AP_SSID}"
+                if proKey == "battery":
+                    battery = proValue
+                if proKey == "to":
+                    toSending = proValue
+                if proKey == "weight":
+                    weight = proValue
+            
+            if id_origin != "server":
+                if command_origin == "autowifi":
+                    print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
+                    for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
+                        sendText = f"id={AP_SSID}&command_origin=autowifi"
+                        sendSocket(ipAdressN,sendText)
+                    print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
+                    execfile("autowifi.py")
+                ROUING_TABLE[id_origin] = recvEsp32Id
+                print(f" - - - ルーティングテーブルを更新します  - - - ")
+                for rk,rv in ROUING_TABLE.items():
+                    print(f"宛先 : {rk} <- - -  送り先 : {rv}")
+                print(f" - - - - - - - - - - - - - - - - - - - - ")
+                if command_origin == "resist":
+                    CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
+                    REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
                     if DEFAULT_LAB_CONNECT:
-                        httpBatteryPost(id_origin,battery,weight)
+                        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                        url = "http://192.168.100.236:5000/init_network_recieve"
+                        sendText = "connected"
+                        resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
+                        update_connected_from_esp32()
+                        check_connected_from_esp32()
                     else:
-                        msg = f"id={AP_SSID}&command_origin=translate&battery={str(battery)}&to=server&weight={str(weight)}&id_origin={id_origin}"
                         sendIpAdress = wifi.ifconfig()[2]
-                        sendSocket(sendIpAdress,msg)
-        else:
-            # サーバから送信された場合の処理
-            print("大変！！！サーバから接続されちゃった！！！！")
-            if command_origin == "autowifi":
-                lock_def_name = "autowifi"
-                print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
-                EXPERIMENT_ENABLE = False
-                print("******* EXPERIMATATIONを停止します ********")
-                # for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
-                #     sendText = f"id={AP_SSID}&command_origin=autowifi"
-                #     sendSocket(ipAdressN,sendText)
-                sendText = f"id={AP_SSID}&command_origin=autowifi&id_origin={id_origin}"
-                tcp_broadcast_send(sendText)
-                print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
-                execfile("autowifi.py")
-            elif command_origin == "experiment_start":
-                if not check_thread_experiment:
-                    print("\n- - - - 実験を開始します - - - - -")
-                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                    print("実験スタートを各ESP32に転送します")
-                    # all_translate_to_ESP32(recvEsp32Id,sendText)
-                    tcp_broadcast_send(sendText)
-                    EXPERIMENT_ENABLE = True
-                    if not check_thread_experiment:
-                        processCheckList("check_thread_experiment",True)
-                        _thread.start_new_thread(measureCurrent,())
-                else:
-                    print("---** 既にEXPETIMENTIONは起動しています **---")
-            elif command_origin == "experiment_stop":
-                if EXPERIMENT_ENABLE:
-                    print("\n- - - - 実験を***停止***します - - - - -")
-                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                    tcp_broadcast_send(sendText)
+                        # id = 送り元
+                        # command_origin = resist (登録)
+                        # sub_com = サブコマンド
+                        # id_origin = 送り元の紀元
+                        # route = たどってきた経路
+                        sendDataIndex = {
+                            "command_origin" : "resist",
+                            "sub_com" : "transfer",
+                            "id_origin" : id_origin,
+                            "route" : temporaryRoute
+                        }
+                        sendText = f"id={AP_SSID}"
+                        for k ,v in sendDataIndex.items(): 
+                            sendText += f"&{k}={v}"
+                        sendSocket(sendIpAdress,sendText)
+                if command_origin == "resist_complete":
+                    if DEFAULT_LAB_CONNECT:
+                        # 研究室Wi-Fiに接続している場合はサーバへ通知をする
+                        url = "http://192.168.100.236:5000/init_network_recieve"
+                        sendText = "resist_complete"
+                        resist_ESP32_httpPost(url,sendText,id_origin,temporaryRoute)
+                        update_connected_from_esp32()
+                        check_connected_from_esp32()
+                    else:
+                        sendIpAdress = wifi.ifconfig()[2]
+                        # id = 送り元
+                        # command_origin = resist (登録)
+                        # sub_com = サブコマンド
+                        # id_origin = 送り元の紀元
+                        # route = たどってきた経路
+                        sendDataIndex = {
+                            "command_origin" : command_origin,
+                            "sub_com" : "transfer",
+                            "id_origin" : id_origin,
+                            "route" : temporaryRoute
+                        }
+                        sendText = f"id={AP_SSID}"
+                        for k ,v in sendDataIndex.items(): 
+                            sendText += f"&{k}={v}"
+                        sendSocket(sendIpAdress,sendText)
+                if command_origin == "translate":
+                    if toSending == "server":
+                        if DEFAULT_LAB_CONNECT:
+                            httpBatteryPost(id_origin,battery,weight)
+                        else:
+                            msg = f"id={AP_SSID}&command_origin=translate&battery={str(battery)}&to=server&weight={str(weight)}&id_origin={id_origin}"
+                            sendIpAdress = wifi.ifconfig()[2]
+                            sendSocket(sendIpAdress,msg)
+            else:
+                # サーバから送信された場合の処理
+                print("大変！！！サーバから接続されちゃった！！！！")
+                if command_origin == "autowifi":
+                    lock_def_name = "autowifi"
+                    print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
                     EXPERIMENT_ENABLE = False
-                    processCheckList("check_thread_experiment",False)
-                else:
-                    print("- - - 既に実験は停止されているためスキップします - - - ")
-            elif command_origin == "reboot":
-                print(" ********** 再起動 ************")
-                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                tcp_broadcast_send(sendText)
-                utime.sleep(2)
-                EXPERIMENT_ENABLE = False
-                p2.off()
-                blue.off()
-                red.off()
-                green.off()
-                machine.reset()
-            elif command_origin == "reset_battery":
-                writeFileResetBatteryAmount()
-                lock_def_name = "reset_battery"
-                sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                tcp_broadcast_send(sendText)
-            elif command_origin == "startAP":
-                lock_def_name = "startAP"
-                if toSending == ESP32_ID:
-                    activate_AP()
-                else:
-                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                    print("******* EXPERIMATATIONを停止します ********")
+                    # for ipAdressN in CURRENT_CONNECTED_FROM_ESP32.values():
+                    #     sendText = f"id={AP_SSID}&command_origin=autowifi"
+                    #     sendSocket(ipAdressN,sendText)
+                    sendText = f"id={AP_SSID}&command_origin=autowifi&id_origin={id_origin}"
                     tcp_broadcast_send(sendText)
-            elif command_origin == "stopAP":
-                lock_def_name = "stopAP"
-                if toSending == ESP32_ID:
-                    shutdownAP()
-                else:
-                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                    print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
+                    execfile("autowifi.py")
+                elif command_origin == "experiment_start":
+                    if not check_thread_experiment:
+                        print("\n- - - - 実験を開始します - - - - -")
+                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                        print("実験スタートを各ESP32に転送します")
+                        # all_translate_to_ESP32(recvEsp32Id,sendText)
+                        tcp_broadcast_send(sendText)
+                        EXPERIMENT_ENABLE = True
+                        if not check_thread_experiment:
+                            processCheckList("check_thread_experiment",True)
+                            _thread.start_new_thread(measureCurrent,())
+                    else:
+                        print("---** 既にEXPETIMENTIONは起動しています **---")
+                elif command_origin == "experiment_stop":
+                    if EXPERIMENT_ENABLE:
+                        print("\n- - - - 実験を***停止***します - - - - -")
+                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                        tcp_broadcast_send(sendText)
+                        EXPERIMENT_ENABLE = False
+                        processCheckList("check_thread_experiment",False)
+                    else:
+                        print("- - - 既に実験は停止されているためスキップします - - - ")
+                elif command_origin == "reboot":
+                    print(" ********** 再起動 ************")
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                     tcp_broadcast_send(sendText)
-        utime.sleep(0.5)
-    # except Exception as e:
-    #     print(e)
-    #     print(f"""
-    #         !!!!!!! THREAD process()にて問題発生 !!!!!!
-    #         再起動します
-    #         """)
+                    utime.sleep(2)
+                    EXPERIMENT_ENABLE = False
+                    p2.off()
+                    blue.off()
+                    red.off()
+                    green.off()
+                    machine.reset()
+                elif command_origin == "reset_battery":
+                    writeFileResetBatteryAmount()
+                    lock_def_name = "reset_battery"
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                    tcp_broadcast_send(sendText)
+                elif command_origin == "startAP":
+                    lock_def_name = "startAP"
+                    if toSending == ESP32_ID:
+                        activate_AP()
+                    else:
+                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                        tcp_broadcast_send(sendText)
+                elif command_origin == "stopAP":
+                    lock_def_name = "stopAP"
+                    if toSending == ESP32_ID:
+                        shutdownAP()
+                    else:
+                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
+                        tcp_broadcast_send(sendText)
+            utime.sleep(0.5)
+    except Exception as e:
+        print(e)
+        print(f"""
+            !!!!!!! THREAD process()にて問題発生 !!!!!!
+            再起動します
+            """)
         
-    #     p2.off()
-    #     blue.off()
-    #     red.off()
-    #     green.off()
-    #     machine.reset()
+        p2.off()
+        blue.off()
+        red.off()
+        green.off()
+        machine.reset()
 
 # 実験開始を接続しているESP32へと伝達している
 # 引数には送信したいデータを格納する
