@@ -274,8 +274,6 @@ def disconnect_report():
             sendSocket(ipAdress,sendData,1)
             print(" --- 送信完了 >>> Wi-Fi切断処理開始 ---")
 
-
-
 #### ソケット受信時のキューシステム ####
 def writeRecvFile(writeData):
     global WRITE_FILE_COUNTER
@@ -771,32 +769,43 @@ def received_udp_socket():
         beforeReceivedData = ""
         # UDPソケットを作成する
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # ブロードキャストアドレスを受信するためにバインドする
         sock.bind(('0.0.0.0', 8888))
-
+        errorCount = 0
         while True:
-            print("accepting.....UDPソケット通信待機中......")
-            # データを受信する
-            conn, addr = sock.recvfrom(1024)
-            green.on()
-            addr = addr[0]
-            data = conn
-            str_data = data.decode()
-            print(f"{addr} より接続 ---> 受信データ : {str_data}")
-            str_data += "?" + addr
-            writeRecvFile(str_data)
-            green.off()
-            # if beforeReceivedData != str_data:
-            #     beforeReceivedData = str_data
-            #     print(f"{addr} より接続 ---> 受信データ : {str_data}")
-            #     str_data += "?" + addr
-            #     writeRecvFile(str_data)
-            #     green.off()
-            # else:
-            #     print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
-            #     green.off()
-            utime.sleep(1)
+            try:
+                
+                print("accepting.....UDPソケット通信待機中......")
+                # データを受信する
+                conn, addr = sock.recvfrom(1024)
+                green.on()
+                addr = addr[0]
+                data = conn
+                str_data = data.decode()
+                print(f"{addr} より接続 ---> 受信データ : {str_data}")
+                str_data += "?" + addr
+                writeRecvFile(str_data)
+                green.off()
+                # if beforeReceivedData != str_data:
+                #     beforeReceivedData = str_data
+                #     print(f"{addr} より接続 ---> 受信データ : {str_data}")
+                #     str_data += "?" + addr
+                #     writeRecvFile(str_data)
+                #     green.off()
+                # else:
+                #     print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
+                #     green.off()
+                utime.sleep(1)
+                errorCount = 0
+            except Exception as e:
+                errorCount += 1
+                print(e)
+                print("""
+                    UDPソケット受信にてエラー発生
+                    """)
+                if errorCount > 3:
+                    break
     except Exception as e:
         print(e)
         print(f"""
