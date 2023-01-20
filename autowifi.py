@@ -186,6 +186,7 @@ if not DEFAULT_LAB_CONNECT and wifi.ifconfig()[0].split(".")[2] != "100":
             break
 
 try:
-    _thread.start_new_thread(received_udp_socket,())
+    if not DEFAULT_LAB_CONNECT:
+        _thread.start_new_thread(received_udp_socket,())
 except:
     print("received_udp_socketエラースキップ")

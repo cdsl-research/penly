@@ -318,12 +318,12 @@ def processRecv():
     global CURRENT_CONNECTED_FROM_ESP32
     global ROUING_TABLE
     global EXPERIMENT_ENABLE
-    try:
-        ## 複数回同じ処理をしないようにするためのロック処理を実施
-        lock_def_name = ""
-        
-        processCheckList("check_thread_processRecv",True)
-        while True:
+    ## 複数回同じ処理をしないようにするためのロック処理を実施
+    lock_def_name = ""
+    
+    processCheckList("check_thread_processRecv",True)
+    while True:
+        try:
             fileData = readRecvFile()
             if fileData == 0:
                 utime.sleep(0.5)
@@ -443,7 +443,7 @@ def processRecv():
             else:
                 # サーバから送信された場合の処理
                 print("大変！！！サーバから接続されちゃった！！！！")
-                if command_origin == "autowifi":
+                if command_origin == "autowifi" and lock_def_name != "autowifi":
                     lock_def_name = "autowifi"
                     print(" ********** 緊急処理 : : : : 他のESP32にautowifiを伝搬します ************")
                     EXPERIMENT_ENABLE = False
@@ -493,14 +493,14 @@ def processRecv():
                     lock_def_name = "reset_battery"
                     sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                     tcp_broadcast_send(sendText)
-                elif command_origin == "startAP":
+                elif command_origin == "startAP" and lock_def_name != "startAP":
                     lock_def_name = "startAP"
                     if toSending == ESP32_ID:
                         activate_AP()
                     else:
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
                         tcp_broadcast_send(sendText)
-                elif command_origin == "stopAP":
+                elif command_origin == "stopAP" and lock_def_name != "stopAP":
                     lock_def_name = "stopAP"
                     if toSending == ESP32_ID:
                         shutdownAP()
@@ -508,18 +508,24 @@ def processRecv():
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
                         tcp_broadcast_send(sendText)
             utime.sleep(0.5)
-    except Exception as e:
-        print(e)
-        print(f"""
+        except Exception as e:
+            print(f"""
             !!!!!!! THREAD process()にて問題発生 !!!!!!
-            再起動します
+            ======= {e} ========
             """)
+            
+    # except Exception as e:
+    #     print(e)
+    #     print(f"""
+    #         !!!!!!! THREAD process()にて問題発生 !!!!!!
+    #         再起動します
+    #         """)
         
-        p2.off()
-        blue.off()
-        red.off()
-        green.off()
-        machine.reset()
+    #     p2.off()
+    #     blue.off()
+    #     red.off()
+    #     green.off()
+    #     machine.reset()
 
 # 実験開始を接続しているESP32へと伝達している
 # 引数には送信したいデータを格納する
@@ -638,7 +644,8 @@ def tcp_broadcast_send(sendData,timeout = 3):
             print(f"送信先 : {k} ({v})")
             sendSocket_tcp_broadcast(v,sendData)
         except Exception as e:
-            print(" **** 送信失敗 >>> {k} ({v}) ****")
+            blue.off()
+            print(f" **** 送信失敗 >>> {k} ({v}) ****")
             print(e)
 
 def sendSocket_tcp_broadcast(ipAdress,sendData):
@@ -749,6 +756,7 @@ def received_socket():
                 print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
                 green.off()
         except Exception as e:
+            green.off()
             print(e)
             print(f"""
                 !!!!!!! THREAD Received_socket()にて問題発生 !!!!!
@@ -773,7 +781,6 @@ def received_udp_socket():
     errorCount = 0
     while True:
         try:
-            
             print("accepting.....UDPソケット通信待機中......")
             # データを受信する
             conn, addr = sock.recvfrom(1024)
@@ -797,6 +804,7 @@ def received_udp_socket():
             utime.sleep(1)
             errorCount = 0
         except Exception as e:
+            green.off()
             errorCount += 1
             print(e)
             print("""
@@ -1230,7 +1238,7 @@ def main():
             --- --- --- RESIST_COMPLETE 送信完了 --- --- ---\n
         """)
     red.off()
-    for _ in range(10):
+    for _ in range(5):
         green.on()
         utime.sleep(0.1)
         green.off()
