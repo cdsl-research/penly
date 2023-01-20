@@ -234,8 +234,8 @@ def wifi_scan():
     else:
         # 研究室に繋げないと分かったらとにあえずAP起動する
         # もしすでに起動している場合は起動せず(IPアドレスが変わっちゃうから)
-        if not ap.active():
-            activate_AP()
+        # if not ap.active():
+        #     activate_AP()
         common_el = list()
         for el in wifiSsidList:
             if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
@@ -1238,6 +1238,11 @@ def main():
             --- --- --- RESIST_COMPLETE 送信完了 --- --- ---\n
         """)
     red.off()
+    if not ap.active():
+        print("""
+            --- Wi-Fiアクセスポイントモード  起動 ----
+            """)
+        activate_AP()
     for _ in range(5):
         green.on()
         utime.sleep(0.1)
