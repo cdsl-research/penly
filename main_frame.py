@@ -339,7 +339,7 @@ def processRecv():
             id_origin = ""
             temporaryRoute = ""
             for fspd in fileDataProcessData:
-                if fspd == " " or fspd == "":
+                if fspd != " " or fspd != "":
                     fspdSplit = fspd.split("=")
                     proKey = fspdSplit[0]
                     proValue = fspdSplit[1]
@@ -359,7 +359,7 @@ def processRecv():
                     if proKey == "to":
                         toSending = proValue
                     if proKey == "weight":
-                        weight = proValue   
+                        weight = proValue
             
             if id_origin != "server":
                 if command_origin == "autowifi":
@@ -369,11 +369,12 @@ def processRecv():
                         sendSocket(ipAdressN,sendText)
                     print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
                     execfile("autowifi.py")
-                ROUING_TABLE[id_origin] = recvEsp32Id
-                print(f" - - - ルーティングテーブルを更新します  - - - ")
-                for rk,rv in ROUING_TABLE.items():
-                    print(f"宛先 : {rk} <- - -  送り先 : {rv}")
-                print(f" - - - - - - - - - - - - - - - - - - - - ")
+                if id_origin != recvEsp32Id:
+                    ROUING_TABLE[id_origin] = recvEsp32Id
+                    print(f" - - - ルーティングテーブルを更新します  - - - ")
+                    for rk,rv in ROUING_TABLE.items():
+                        print(f"宛先 : {rk} <- - -  送り先 : {rv}")
+                    print(f" - - - - - - - - - - - - - - - - - - - - ")
                 if command_origin == "resist":
                     CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id] = addr
                     REQUIRE_CONNECTED_ESP32[recvEsp32Id] = True
@@ -722,15 +723,15 @@ def transfer_sendSocket(ipAdress,sendData,timeout = 1):
             
 
 def received_socket():
-    try:
-        beforeReceivedData = ""
-        listenSocket = socket.socket()
-        listenSocket.bind(('', PORT))
-        listenSocket.listen(5)
-        listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        processCheckList("check_thread_received_socket",True)
-        print('tcp waiting...')
-        while True:
+    beforeReceivedData = ""
+    listenSocket = socket.socket()
+    listenSocket.bind(('', PORT))
+    listenSocket.listen(5)
+    listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    processCheckList("check_thread_received_socket",True)
+    print('tcp waiting...')
+    while True:
+        try:
             print("accepting.....ソケット通信待機中......")
             conn, addr = listenSocket.accept()
             green.on()
@@ -747,78 +748,74 @@ def received_socket():
             else:
                 print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
                 green.off()
-    except Exception as e:
-        print(e)
-        print(f"""
-            !!!!!!! THREAD Received_socket()にて問題発生 !!!!!!
-            autowifi.pyを実行
-            """)
-        # execfile("autowifi.py")
-        
-        if wifi.ifconfig()[0].split(".")[2] != "100":
-            print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
-            p2.off()
-            blue.off()
-            red.off()
-            green.off()
-            machine.reset()
+        except Exception as e:
+            print(e)
+            print(f"""
+                !!!!!!! THREAD Received_socket()にて問題発生 !!!!!
+                """)
+        # if wifi.ifconfig()[0].split(".")[2] != "100":
+        #     print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
+        #     p2.off()
+        #     blue.off()
+        #     red.off()
+        #     green.off()
+        #     machine.reset()
         
 
 # UDPソケット受信
 def received_udp_socket():
-    try:
-        beforeReceivedData = ""
-        # UDPソケットを作成する
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # ブロードキャストアドレスを受信するためにバインドする
-        sock.bind(('0.0.0.0', 8888))
-        errorCount = 0
-        while True:
-            try:
-                
-                print("accepting.....UDPソケット通信待機中......")
-                # データを受信する
-                conn, addr = sock.recvfrom(1024)
-                green.on()
-                addr = addr[0]
-                data = conn
-                str_data = data.decode()
-                print(f"{addr} より接続 ---> 受信データ : {str_data}")
-                str_data += "?" + addr
-                writeRecvFile(str_data)
-                green.off()
-                # if beforeReceivedData != str_data:
-                #     beforeReceivedData = str_data
-                #     print(f"{addr} より接続 ---> 受信データ : {str_data}")
-                #     str_data += "?" + addr
-                #     writeRecvFile(str_data)
-                #     green.off()
-                # else:
-                #     print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
-                #     green.off()
-                utime.sleep(1)
-                errorCount = 0
-            except Exception as e:
-                errorCount += 1
-                print(e)
-                print("""
-                    UDPソケット受信にてエラー発生
-                    """)
-                if errorCount > 3:
-                    break
-    except Exception as e:
-        print(e)
-        print(f"""
-            !!!!!!! THREAD received_udp_socket()にて問題発生 !!!!!!
-            再起動します
-            """)
+    beforeReceivedData = ""
+    # UDPソケットを作成する
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # ブロードキャストアドレスを受信するためにバインドする
+    sock.bind(('0.0.0.0', 8888))
+    errorCount = 0
+    while True:
+        try:
+            
+            print("accepting.....UDPソケット通信待機中......")
+            # データを受信する
+            conn, addr = sock.recvfrom(1024)
+            green.on()
+            addr = addr[0]
+            data = conn
+            str_data = data.decode()
+            print(f"{addr} より接続 ---> 受信データ : {str_data}")
+            str_data += "?" + addr
+            writeRecvFile(str_data)
+            green.off()
+            # if beforeReceivedData != str_data:
+            #     beforeReceivedData = str_data
+            #     print(f"{addr} より接続 ---> 受信データ : {str_data}")
+            #     str_data += "?" + addr
+            #     writeRecvFile(str_data)
+            #     green.off()
+            # else:
+            #     print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
+            #     green.off()
+            utime.sleep(1)
+            errorCount = 0
+        except Exception as e:
+            errorCount += 1
+            print(e)
+            print("""
+                UDPソケット受信にてエラー発生
+                """)
+            if errorCount > 3:
+                break
+    # except Exception as e:
+    #     print(e)
+    #     print(f"""
+    #         !!!!!!! THREAD received_udp_socket()にて問題発生 !!!!!!
+    #         再起動します
+    #         """)
         
-        p2.off()
-        blue.off()
-        red.off()
-        green.off()
-        machine.reset()
+    #     p2.off()
+    #     blue.off()
+    #     red.off()
+    #     green.off()
+    #     machine.reset()
 
 ### 接続できるESP32の候補を制限する
 
