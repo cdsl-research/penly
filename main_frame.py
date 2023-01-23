@@ -163,6 +163,7 @@ def check_wifi_thread():
                 red.on()
                 disconnect_report()
                 wifi.disconnect()
+                print("--- Wi-Fi 切断完了 ---")
                 utime.sleep(0.5)
                 # 重さの返信が終わって，まだWi-Fiに接続していないデバイスがあればそちらに接続する
                 if DEFAULT_LAB_CONNECT == False:
@@ -170,6 +171,7 @@ def check_wifi_thread():
                     endFlag = False
                     disconnect_report()
                     wifi.disconnect()
+                    print("--- Wi-Fi 切断完了 ---")
                     for k,v in CURRENT_CONNECT_TO_ESP32.items():
                         CURRENT_CONNECT_TO_ESP32[k] = False
                     wifiList = wifi.scan()
@@ -251,6 +253,7 @@ def wifi_scan():
                     p2.off()
                     disconnect_report()
                     wifi.disconnect()
+                    print("--- Wi-Fi 切断完了 ---")
                     utime.sleep(1)
                     esp_connect_wifi(c_el)
                     if check_thread_received_socket != True:
