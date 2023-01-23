@@ -437,9 +437,12 @@ def processRecv():
                             sendSocket(sendIpAdress,msg)
                 if command_origin == "disconnect_report":
                     print(f"###  {recvEsp32Id} から切断レポート検知 ###")
-                    del CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id]
-                    print(f"""     削除実行完了
-                        {CURRENT_CONNECTED_FROM_ESP32}""")
+                    if recvEsp32Id in CURRENT_CONNECTED_FROM_ESP32:
+                        del CURRENT_CONNECTED_FROM_ESP32[recvEsp32Id]
+                        print(f"""     削除実行完了
+                            {CURRENT_CONNECTED_FROM_ESP32}""")
+                    else:
+                        print("CURRENT_CONNECTION_FROM_ESP32に {recvEsp32Id}は存在しません")
             else:
                 # サーバから送信された場合の処理
                 print("大変！！！サーバから接続されちゃった！！！！")
