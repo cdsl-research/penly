@@ -638,6 +638,7 @@ def udp_broadcast_send(sendData,timeout = 3):
         socksock.sendto(sendData, (broadcast_addr, 8888))
         blue.off()
     except Exception as e:
+        blue.off()
         print(" **** UDPソケットのブロードキャスト送信にて問題発生 ****")
         print(e)
 
