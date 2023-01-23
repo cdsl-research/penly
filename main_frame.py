@@ -33,6 +33,8 @@ CURRENT_CONNECT_TO_ESP32 = {}
 SET_BATTERY = 10000
 # 実験のWHILE文分岐
 EXPERIMENT_ENABLE = True
+# 送信できなかった(CURRENT_CONNECTTED_FROM_ESP32にあるのに)ESP32のリストアップ
+ERROR_CONNECT_ESP32 = {}
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -463,7 +465,7 @@ def processRecv():
                         print("\n- - - - 実験を開始します - - - - -")
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
                         print("実験スタートを各ESP32に転送します")
-                        # all_translate_to_ESP32(recvEsp32Id,sendText)
+                        # all_translate_to_ESP32(recvEsp32Id,sendText)1
                         tcp_broadcast_send(sendText)
                         EXPERIMENT_ENABLE = True
                         if not check_thread_experiment:
@@ -648,6 +650,8 @@ def tcp_broadcast_send(sendData,timeout = 3):
             sendSocket_tcp_broadcast(v,sendData)
         except Exception as e:
             blue.off()
+            # 送信できない場合エラーを送信
+            ERROR_CONNECT_ESP32[k] = True
             print(f" **** 送信失敗 >>> {k} ({v}) ****")
             print(e)
 
