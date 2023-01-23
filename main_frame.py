@@ -276,8 +276,11 @@ def disconnect_report():
             print(f" --- 接続中の {wifi.ifconfig()[2]} へ切断レポートを送信します ---")
             
             sendData = f"id={AP_SSID}&command_origin=disconnect_report&id_origin={AP_SSID}"
-            sendSocket(ipAdress,sendData,1)
-            print(" --- 送信完了 >>> Wi-Fi切断処理開始 ---")
+            result = sendSocket(ipAdress,sendData,1)
+            if result:
+                print("!!!! --- 送信完了 >>> Wi-Fi切断処理開始 ---!!!!!")
+            else:
+                print("---送信失敗 >>> Wi-Fi切断処理開始 ---")
 
 #### ソケット受信時のキューシステム ####
 def writeRecvFile(writeData):
@@ -646,6 +649,7 @@ def udp_broadcast_send(sendData,timeout = 3):
         print(e)
 
 def tcp_broadcast_send(sendData,timeout = 3):
+    global CURRENT_CONNECTED_FROM_ESP32
     print(f"送信されている全ESP32へ送信処理")
     for k,v in CURRENT_CONNECTED_FROM_ESP32.items():
         try:
@@ -657,6 +661,7 @@ def tcp_broadcast_send(sendData,timeout = 3):
             # 送信できない場合エラーを送信
             ERROR_CONNECT_ESP32[k] = True
             print(f" **** 送信失敗 >>> {k} ({v}) ****")
+            del CURRENT_CONNECTED_FROM_ESP32[k]
             print(e)
 
 def sendSocket_tcp_broadcast(ipAdress,sendData):
@@ -684,13 +689,14 @@ def sendSocket(ipAdress,sendData,timeout = 3):
             s.close()
             blue.off()
             print("Sending Complete!")
-            break
+            return True
         except Exception as e:
             count += 1
             print("\n **** ソケット送信で問題が発生 (関数名 : sendSocket) ****")
             print(e)
             print(" **** 5秒後に再度やり直します ****")
             utime.sleep(5)
+    return False
 
 def resistSendSocket(ipAdress,sendData,timeout = 3):
     count = 0
