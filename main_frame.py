@@ -157,6 +157,7 @@ def check_wifi_thread():
         global CURRENT_CONNECT_TO_ESP32
         global NEEDING_CONNECT_ESP32
         ERROR_COUNT = 0
+        GREEN_ERROR_COUNT = 0
         while FLAG_CHECK_WIFI_ENABLE:
             if wifi.isconnected() == False:
                 print(" ----- Wi-Fiの切断を検知  再接続試行----- ")
@@ -201,6 +202,18 @@ def check_wifi_thread():
                                     utime.sleep(0.5)
                         if endFlag == True:
                             break
+            
+            ## 緑LEDがずっと光っている状態(ソケット受信でスタックしている場合)をチェックし再起動を実施
+            if green.value() == 1:
+                GREEN_ERROR_COUNT += 1
+                if GREEN_ERROR_COUNT > 10:
+                    p2.off()
+                    blue.off()
+                    red.off()
+                    green.off()
+                    machine.reset()
+            else:
+                GREEN_ERROR_COUNT = 0
             utime.sleep(2)
     except Exception as e:
         print(e)
@@ -347,7 +360,9 @@ def processRecv():
             id_origin = ""
             temporaryRoute = ""
             for fspd in fileDataProcessData:
-                if fspd != " " or fspd != "":
+                if fspd == " " or fspd == "":
+                        pass
+                else:
                     fspdSplit = fspd.split("=")
                     proKey = fspdSplit[0]
                     proValue = fspdSplit[1]
@@ -755,6 +770,7 @@ def received_socket():
     listenSocket.bind(('', PORT))
     listenSocket.listen(5)
     listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listenSocket.settimeout(10)
     processCheckList("check_thread_received_socket",True)
     print('tcp waiting...')
     while True:
@@ -775,12 +791,21 @@ def received_socket():
             else:
                 print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
                 green.off()
-        except Exception as e:
+        except OSError as e:
+            if e.args[0] == 110: # 110 is the error code for timeout
+                print("""
+                    Timeout occurred, no connection was made
+                    """)
+            else:
+                print(e)
             green.off()
-            print(e)
+        except Exception as ea:
+            print(ea)
             print(f"""
                 !!!!!!! THREAD Received_socket()にて問題発生 !!!!!
                 """)
+            green.off()
+            
         # if wifi.ifconfig()[0].split(".")[2] != "100":
         #     print("!!!!!!! CDSLへの接続を確認できず !!!!!!")
         #     p2.off()
@@ -917,7 +942,8 @@ def check_connected_from_esp32():
     global REQUIRE_CONNECTED_ESP32
     if False not in REQUIRE_CONNECTED_ESP32.values():
         print("\n接続予定の全てのESP32との接続を確認")
-        processCheckList("check_esp_connected",True)
+        if not check_esp_connected:
+            processCheckList("check_esp_connected",True)
         return True
     else:
         return False
@@ -1248,6 +1274,8 @@ def main():
     print("init_flag.pyを実行")
     execfile("init_flag.py")
     init_network()
+    # if not check_thread_checkWifi:
+    #     _thread.start_new_thread(check_wifi_thread,())
     
     print("\n - - - - ネットワークの初期化完了 - - - - - -")
     if wifi.ifconfig()[0].split(".")[2] != "100":
@@ -1268,6 +1296,8 @@ def main():
         utime.sleep(0.1)
         green.off()
         utime.sleep(0.1)
+    green.off()
+    red.off()
     
     # if INIT_FLAG == False:
     #     print(": : : : : 未初期化 = 初期化開始 : : : : : ")
