@@ -683,7 +683,6 @@ def sendSocket_tcp_broadcast(ipAdress,sendData):
     print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
     blue.on()
     s = socket.socket()
-    s.settimeout(2) # タイムアウトを2秒に設定
     s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
     s.send(sendData)
     s.close()
@@ -700,7 +699,6 @@ def sendSocket(ipAdress,sendData,timeout = 3):
             print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
             blue.on()
             s = socket.socket()
-            s.settimeout(2) # タイムアウトを2秒に設定
             s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
             s.send(sendData)
             s.close()
@@ -725,7 +723,6 @@ def resistSendSocket(ipAdress,sendData,timeout = 3):
             print(f"送信データ : {sendData} ---> 送信先 : {ipAdress}")
             blue.on()
             s = socket.socket()
-            s.settimeout(2) # タイムアウトを2秒に設定
             s.connect(socket.getaddrinfo(ipAdress,PORT)[0][-1])
             s.send(sendData)
             s.close()
