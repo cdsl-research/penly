@@ -163,6 +163,7 @@ def check_wifi_thread():
                 print(" ----- Wi-Fiの切断を検知  再接続試行----- ")
                 red.on()
                 disconnect_report()
+                utime.sleep(1)
                 wifi.disconnect()
                 print("--- Wi-Fi 切断完了 ---")
                 utime.sleep(0.5)
@@ -171,6 +172,7 @@ def check_wifi_thread():
                     print("----- 接続可能先が他にないかチェック ------")
                     endFlag = False
                     disconnect_report()
+                    utime.sleep(1)
                     wifi.disconnect()
                     print("--- Wi-Fi 切断完了 ---")
                     for k,v in CURRENT_CONNECT_TO_ESP32.items():
@@ -265,6 +267,7 @@ def wifi_scan():
                     print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
                     p2.off()
                     disconnect_report()
+                    utime.sleep(1)
                     wifi.disconnect()
                     print("--- Wi-Fi 切断完了 ---")
                     utime.sleep(1)
@@ -772,12 +775,17 @@ def received_socket():
     print('tcp waiting...')
     while True:
         try:
-            print("accepting.....ソケット通信待機中......")
+            
             conn, addr = listenSocket.accept()
+            print("accepting.....ソケット通信待機中......")
             green.on()
+            print("green.on()")
             addr = addr[0]
+            print("addr = addr[0]")
             data = conn.recv(1024)
+            print("data = conn.recv(1024)")
             conn.close()
+            print("conn.close()")
             str_data = data.decode()
             if beforeReceivedData != str_data:
                 beforeReceivedData = str_data
@@ -789,7 +797,7 @@ def received_socket():
                 print(f"-- - 前回接続されたデータ ({beforeReceivedData})と同じためコマンドをスキップします - --")
                 green.off()
         except OSError as e:
-            if e.args[0] == 110: # 110 is the error code for timeout
+            if e.args[0] == 116: # 110 is the error code for timeout
                 print("""
                     Timeout occurred, no connection was made
                     """)
