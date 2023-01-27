@@ -38,7 +38,7 @@ ERROR_CONNECT_ESP32 = {}
 # 切断前のスリープ秒
 WIFI_DISCONNECTION_TIME = 2
 # 再起動時, 実験を継続するか?
-fff = open("reboot_experimnt.txt","r")
+fff = open("reboot_experiment.txt","r")
 ddd = fff.read()
 if ddd == "False":
     REBOOT_EXPERIMENT_JUDGE = False
