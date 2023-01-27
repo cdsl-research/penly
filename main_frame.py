@@ -48,11 +48,11 @@ fff.close()
 
 def rewrite_reboot_experiment(judge):
     if judge:
-        file = open("reboot_experimnt.txt","w")
+        file = open("reboot_experiment.txt","w")
         file.write("True")
         file.close()
     else:
-        file = open("reboot_experimnt.txt","w")
+        file = open("reboot_experiment.txt","w")
         file.write("False")
         file.close()
 
@@ -1250,7 +1250,6 @@ def continue_experiment_network():
             """)
         wifi_scan()
         
-        _thread.start_new_thread(check_wifi_thread,())
         processCheckList("check_thread_experiment",True)
         _thread.start_new_thread(measureCurrent,())
     else:
@@ -1352,34 +1351,34 @@ def main():
             ーーー　実験を再開します　ーーー
             """)
         continue_experiment_network()
-    
-    print("init_flag.pyを実行")
-    execfile("init_flag.py")
-    init_network()
-    # if not check_thread_checkWifi:
-    #     _thread.start_new_thread(check_wifi_thread,())
-    
-    print("\n - - - - ネットワークの初期化完了 - - - - - -")
-    if wifi.ifconfig()[0].split(".")[2] != "100":
-        sendIpAdress = wifi.ifconfig()[2]
-        sendData = f"id={AP_SSID}&command_origin=resist_complete&id_origin={AP_SSID}&route={AP_SSID}"
-        sendSocket(sendIpAdress,sendData)
-        print(f"""
-            --- --- --- RESIST_COMPLETE 送信完了 --- --- ---\n
-        """)
-    red.off()
-    if not ap.active():
-        print("""
-            --- Wi-Fiアクセスポイントモード  起動 ----
+    else:
+        print("init_flag.pyを実行")
+        execfile("init_flag.py")
+        init_network()
+        # if not check_thread_checkWifi:
+        #     _thread.start_new_thread(check_wifi_thread,())
+        
+        print("\n - - - - ネットワークの初期化完了 - - - - - -")
+        if wifi.ifconfig()[0].split(".")[2] != "100":
+            sendIpAdress = wifi.ifconfig()[2]
+            sendData = f"id={AP_SSID}&command_origin=resist_complete&id_origin={AP_SSID}&route={AP_SSID}"
+            sendSocket(sendIpAdress,sendData)
+            print(f"""
+                --- --- --- RESIST_COMPLETE 送信完了 --- --- ---\n
             """)
-        activate_AP()
-    for _ in range(5):
-        green.on()
-        utime.sleep(0.1)
+        red.off()
+        if not ap.active():
+            print("""
+                --- Wi-Fiアクセスポイントモード  起動 ----
+                """)
+            activate_AP()
+        for _ in range(5):
+            green.on()
+            utime.sleep(0.1)
+            green.off()
+            utime.sleep(0.1)
         green.off()
-        utime.sleep(0.1)
-    green.off()
-    red.off()
+        red.off()
     
     # if INIT_FLAG == False:
     #     print(": : : : : 未初期化 = 初期化開始 : : : : : ")
