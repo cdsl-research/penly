@@ -35,6 +35,8 @@ SET_BATTERY = 10000
 EXPERIMENT_ENABLE = True
 # 送信できなかった(CURRENT_CONNECTTED_FROM_ESP32にあるのに)ESP32のリストアップ
 ERROR_CONNECT_ESP32 = {}
+# 切断前のスリープ秒
+WIFI_DISCONNECTION_TIME = 2
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -163,7 +165,7 @@ def check_wifi_thread():
                 print(" ----- Wi-Fiの切断を検知  再接続試行----- ")
                 red.on()
                 disconnect_report()
-                utime.sleep(1)
+                utime.sleep(WIFI_DISCONNECTION_TIME)
                 wifi.disconnect()
                 print("--- Wi-Fi 切断完了 ---")
                 utime.sleep(0.5)
@@ -172,7 +174,7 @@ def check_wifi_thread():
                     print("----- 接続可能先が他にないかチェック ------")
                     endFlag = False
                     disconnect_report()
-                    utime.sleep(1)
+                    utime.sleep(WIFI_DISCONNECTION_TIME)
                     wifi.disconnect()
                     print("--- Wi-Fi 切断完了 ---")
                     for k,v in CURRENT_CONNECT_TO_ESP32.items():
@@ -267,7 +269,7 @@ def wifi_scan():
                     print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
                     p2.off()
                     disconnect_report()
-                    utime.sleep(1)
+                    utime.sleep(WIFI_DISCONNECTION_TIME)
                     wifi.disconnect()
                     print("--- Wi-Fi 切断完了 ---")
                     utime.sleep(1)
