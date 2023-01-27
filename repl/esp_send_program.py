@@ -1,5 +1,6 @@
 import sys
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 args = sys.argv
 
@@ -60,6 +61,19 @@ def print_checklist():
     for k, v in SEND_CHECK_LIST.items():
         print(f"{k} : {v}")
     print("---")
+    
+def send_to_esp(espName):
+    programFile = str(args[1])
+    print("\n\n", espName, "へ送信します")
+    try:
+        setIpCode = "upydev config -t " + str(espName) + " -p cdsl"
+        setSendProgramCode = "upydev put -rst f -f " + programFile
+        cp = subprocess.run(setIpCode, shell=True)
+        print("returncode:", cp.returncode)
+        cp = subprocess.run(setSendProgramCode, shell=True)
+        print("returncode:", cp.returncode)
+    except:
+        print("error")
 
 def allSendProgram():
     init_checklist()
@@ -165,6 +179,10 @@ if __name__ == "__main__":
     flag = int(input(">>> "))
     if flag == 1:
         allSendProgram()
+        # with ThreadPoolExecutor() as executor:
+        #     futures = [executor.submit(send_to_esp, espName) for k, espName in espIpDict.items()]
+        #     for future in futures:
+        #         future.result()
     elif flag == 2:
         selectSendProgram()
     
