@@ -37,6 +37,24 @@ EXPERIMENT_ENABLE = True
 ERROR_CONNECT_ESP32 = {}
 # 切断前のスリープ秒
 WIFI_DISCONNECTION_TIME = 2
+# 再起動時, 実験を継続するか?
+fff = open("reboot_experimnt.txt","r")
+ddd = fff.read()
+if ddd == "False":
+    REBOOT_EXPERIMENT_JUDGE = False
+elif ddd == "True":
+    REBOOT_EXPERIMENT_JUDGE = True
+fff.close()
+
+def rewrite_reboot_experiment(judge):
+    if judge:
+        file = open("reboot_experimnt.txt","w")
+        file.write("True")
+        file.close()
+    else:
+        file = open("reboot_experimnt.txt","w")
+        file.write("False")
+        file.close()
 
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
@@ -236,54 +254,63 @@ def check_wifi_thread():
 # Wi-Fiスキャン
 # 研究室Wi-Fiに繋げられるなら繋げる
 # 繋げられない場合はESP32を探す
-def wifi_scan():
-    print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
-    global wifi
-    global NEEDING_CONNECT_ESP32
-    wifiList = wifi.scan()
-    wifiSsidList = list()
-    for wl in wifiList:
-        wifiSsidList.append(wl[0].decode("utf-8"))
-    print(wifiSsidList)
-    update_init_remaining_esp32(wifiSsidList)
-    connected_wifi = False
-    if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
-        # 研究室へ接続
-        print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
-        connect_wifi(LAB_SSID,SSID_PASS)
-        return True
-    else:
-        # 研究室に繋げないと分かったらとにあえずAP起動する
-        # もしすでに起動している場合は起動せず(IPアドレスが変わっちゃうから)
-        # if not ap.active():
-        #     activate_AP()
-        common_el = list()
-        for el in wifiSsidList:
-            if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
-                common_el.append(el)
-                print(f"接続可能なESP32を検知 ---> {el}")
-        
-        if common_el:
-            for c_el in common_el:
-                if NEEDING_CONNECT_ESP32[c_el] == False:
-                    print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
-                    p2.off()
-                    disconnect_report()
-                    utime.sleep(WIFI_DISCONNECTION_TIME)
-                    wifi.disconnect()
-                    print("--- Wi-Fi 切断完了 ---")
-                    utime.sleep(1)
-                    esp_connect_wifi(c_el)
-                    if check_thread_received_socket != True:
-                        _thread.start_new_thread(received_socket,())
-                        if DEFAULT_LAB_CONNECT:
-                            _thread.start_new_thread(received_udp_socket,())
-                    if check_thread_processRecv != True:
-                        _thread.start_new_thread(processRecv,())
-                    return False
+def wifi_scan(CONTINUE_EXPETIMENT=False):
+    if CONTINUE_EXPETIMENT == False:
+        print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
+        global wifi
+        global NEEDING_CONNECT_ESP32
+        wifiList = wifi.scan()
+        wifiSsidList = list()
+        for wl in wifiList:
+            wifiSsidList.append(wl[0].decode("utf-8"))
+        print(wifiSsidList)
+        update_init_remaining_esp32(wifiSsidList)
+        connected_wifi = False
+        if LAB_SSID in wifiSsidList and DEFAULT_LAB_CONNECT == True:
+            # 研究室へ接続
+            print(f"{LAB_SSID}のSSID検知 ---> 接続処理開始")
+            connect_wifi(LAB_SSID,SSID_PASS)
+            return True
         else:
-            print("接続できるネットワーク環境がありません")
-            return 0
+            # 研究室に繋げないと分かったらとにあえずAP起動する
+            # もしすでに起動している場合は起動せず(IPアドレスが変わっちゃうから)
+            # if not ap.active():
+            #     activate_AP()
+            common_el = list()
+            for el in wifiSsidList:
+                if el in ENABLE_CONNECT_ESP32 and el in NEEDING_CONNECT_ESP32:
+                    common_el.append(el)
+                    print(f"接続可能なESP32を検知 ---> {el}")
+            
+            if common_el:
+                for c_el in common_el:
+                    if NEEDING_CONNECT_ESP32[c_el] == False:
+                        print(f"現在接続されている {wifi.ifconfig()[0]}から切断します")
+                        p2.off()
+                        disconnect_report()
+                        utime.sleep(WIFI_DISCONNECTION_TIME)
+                        wifi.disconnect()
+                        print("--- Wi-Fi 切断完了 ---")
+                        utime.sleep(1)
+                        esp_connect_wifi(c_el)
+                        if check_thread_received_socket != True:
+                            _thread.start_new_thread(received_socket,())
+                            if DEFAULT_LAB_CONNECT:
+                                _thread.start_new_thread(received_udp_socket,())
+                        if check_thread_processRecv != True:
+                            _thread.start_new_thread(processRecv,())
+                        return False
+            else:
+                print("接続できるネットワーク環境がありません")
+                return 0
+    else:
+        wifiList = wifi.scan()
+        wifiSsidList = list()
+        for wl in wifiList:
+            wifiSsidList.append(wl[0].decode("utf-8"))
+        print(wifiSsidList)
+
+        return wifiSsidList
 
 
 ### Wi-Fiを切断する際にESP32へ切断メッセージを送る ###
@@ -487,6 +514,8 @@ def processRecv():
                     print(" ********** 緊急処理 : : : : autowifi.pyを起動します ************")
                     execfile("autowifi.py")
                 elif command_origin == "experiment_start":
+                    rewrite_reboot_experiment(True)
+                    
                     if not check_thread_experiment:
                         print("\n- - - - 実験を開始します - - - - -")
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
@@ -500,6 +529,7 @@ def processRecv():
                     else:
                         print("---** 既にEXPETIMENTIONは起動しています **---")
                 elif command_origin == "experiment_stop":
+                    rewrite_reboot_experiment(False)
                     if EXPERIMENT_ENABLE:
                         print("\n- - - - 実験を***停止***します - - - - -")
                         sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
@@ -1153,9 +1183,9 @@ def measureCurrent():
                     current = 150
                     randomNumber = random.random()
                     if randomNumber < 0.5:
-                        calibrationN = -15 * randomNumber
+                        calibrationN = -20 * randomNumber
                     else:
-                        calibrationN = 15 * randomNumber / 2
+                        calibrationN = 20 * randomNumber / 2
                     current += calibrationN
                 else:
                     current = 55
@@ -1206,6 +1236,45 @@ def measureCurrent():
         red.off()
         green.off()
         machine.reset()
+
+
+def continue_experiment_network():
+    if DEFAULT_LAB_CONNECT:
+        
+        _thread.start_new_thread(received_socket,())
+        _thread.start_new_thread(received_udp_socket,())
+        _thread.start_new_thread(processRecv,())
+        
+        print("""
+            --- スレッド起動シーケンス ---
+            """)
+        wifi_scan()
+        
+        _thread.start_new_thread(check_wifi_thread,())
+        processCheckList("check_thread_experiment",True)
+        _thread.start_new_thread(measureCurrent,())
+    else:
+        print("""
+            --- スレッド起動シーケンス ---
+            """)
+        _thread.start_new_thread(received_socket,())
+        _thread.start_new_thread(processRecv,())
+        
+        
+        print("""
+            --- Wi-Fi接続シーケンス ---
+            """)
+        wifiSsidList = wifi_scan(True)
+        for i in ENABLE_CONNECT_ESP32:
+            for wsl in wifiSsidList:
+                if i == wsl:
+                    print(f"接続可能なWi-Fi : {i} を発見．接続します")
+                    esp_connect_wifi(i)
+        
+        _thread.start_new_thread(check_wifi_thread,())
+        
+        processCheckList("check_thread_experiment",True)
+        _thread.start_new_thread(measureCurrent,())
 
 ####### チェックリスト #######
 check_booting = False
@@ -1277,6 +1346,12 @@ def main():
     
     print(" --- キャッシュデータ削除処理 ---")
     deleteCashFile()
+    
+    if REBOOT_EXPERIMENT_JUDGE:
+        print("""
+            ーーー　実験を再開します　ーーー
+            """)
+        continue_experiment_network()
     
     print("init_flag.pyを実行")
     execfile("init_flag.py")
