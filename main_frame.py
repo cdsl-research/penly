@@ -46,6 +46,15 @@ elif ddd == "True":
     REBOOT_EXPERIMENT_JUDGE = True
 fff.close()
 
+# 再起動時, APを起動するか?
+fff = open("reboot_ap.txt","r")
+ddd = fff.read()
+if ddd == "False":
+    REBOOT_AP = False
+elif ddd == "True":
+    REBOOT_AP = True
+fff.close()
+
 def rewrite_reboot_experiment(judge):
     if judge:
         file = open("reboot_experiment.txt","w")
@@ -56,6 +65,16 @@ def rewrite_reboot_experiment(judge):
         file.write("False")
         file.close()
 
+def rewrite_reboot_ap(judge):
+    if judge:
+        file = open("reboot_ap.txt","w")
+        file.write("True")
+        file.close()
+    else:
+        file = open("reboot_ap.txt","w")
+        file.write("False")
+        file.close()
+        
 # キャッシュデータ(テキストファイル)の削除処理
 def deleteCashFile():
     fileList = os.listdir()
@@ -556,6 +575,7 @@ def processRecv():
                     tcp_broadcast_send(sendText)
                 elif command_origin == "startAP" and lock_def_name != "startAP":
                     lock_def_name = "startAP"
+                    rewrite_reboot_ap(True)
                     if toSending == ESP32_ID:
                         activate_AP()
                     else:
@@ -563,6 +583,7 @@ def processRecv():
                         tcp_broadcast_send(sendText)
                 elif command_origin == "stopAP" and lock_def_name != "stopAP":
                     lock_def_name = "stopAP"
+                    rewrite_reboot_ap(False)
                     if toSending == ESP32_ID:
                         shutdownAP()
                     else:
@@ -1250,6 +1271,9 @@ def continue_experiment_network():
             """)
         wifi_scan()
         
+        if REBOOT_AP:
+            activate_AP()
+        
         processCheckList("check_thread_experiment",True)
         _thread.start_new_thread(measureCurrent,())
     else:
@@ -1270,6 +1294,8 @@ def continue_experiment_network():
                     print(f"接続可能なWi-Fi : {i} を発見．接続します")
                     esp_connect_wifi(i)
         
+        if REBOOT_AP:
+            activate_AP()
         _thread.start_new_thread(check_wifi_thread,())
         
         processCheckList("check_thread_experiment",True)
