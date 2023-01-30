@@ -28,7 +28,9 @@ fileList = [
     "battery.txt",
     "init_flag.py",
     "main_frame.py",
-    "ctime.py"
+    "ctime.py",
+    "reboot_ap.txt",
+    "reboot_experiment.txt"
 ]
 
 

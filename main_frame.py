@@ -81,6 +81,10 @@ def deleteCashFile():
     for fl in fileList:
         if "recv" in fl:
             os.remove(fl)
+        if "battery.csv" == fl:
+            os.remove(fl)
+        if "current.csv" == fl:
+            os.remove(fl)
 
 def randomAddressGenerator():
     NNN = random.randrange(5,254)
@@ -1222,9 +1226,9 @@ def measureCurrent():
                 currentData = "%.3f" % current
                 currentData += "\n"
                 print("\r" + str(iText),end="")
-                f = open('current.csv', 'a')
-                f.write(str(currentData))
-                f.close() 
+                # f = open('current.csv', 'a')
+                # f.write(str(currentData))
+                # f.close() 
                 count += 1
                 utime.sleep(1)
                 
@@ -1233,6 +1237,8 @@ def measureCurrent():
             print(f"---- 60秒間の平均消費電力 : {sumCurrent}[mA]   電池残量残量 : {battery - sumCurrent}[mAh] ----")
             
             battery -= sumCurrent
+            if battery < 0.0:
+                battery = 0.0
             batteryData = "%.3f" % battery
             batteryData += "\n"
             if DEFAULT_LAB_CONNECT == True:
@@ -1242,9 +1248,9 @@ def measureCurrent():
                 sendIpAdress = wifi.ifconfig()[2]
                 sendSocket(sendIpAdress,msg)
             writeFileBattery(str(battery))
-            f = open('battery.csv', 'a')
-            f.write(str(batteryData))
-            f.close()
+            # f = open('battery.csv', 'a')
+            # f.write(str(batteryData))
+            # f.close()
     except Exception as e:
         print(e)
         print(f"""
@@ -1420,8 +1426,6 @@ def main():
     #         file.close()
     # else:
     #     print(": : : : : 初期化済み : : : : : ")
-        
-
 
 if __name__ ==  "__main__":
     main()
