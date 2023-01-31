@@ -439,8 +439,8 @@ def processRecv():
                         battery = proValue
                     if proKey == "to":
                         toSendingOriginal = proValue
-                        proValue = proValue.split("+")
-                        if ESP32_ID in proValue:
+                        pV = toSendingOriginal.split("+")
+                        if ESP32_ID in pV:
                             toSending = ESP32_ID
                     if proKey == "weight":
                         weight = proValue
@@ -514,7 +514,12 @@ def processRecv():
                             sendText += f"&{k}={v}"
                         sendSocket(sendIpAdress,sendText)
                 if command_origin == "translate":
-                    if toSending == "server":
+                    print(" --- command_origin : translateの処理に入ります ---")
+                    if toSendingOriginal == "server":
+                        print(""" 
+                            --- toSendingOriginal : serverの処理に入ります ---
+                                --- ここではサーバへの転送処理を各自実施します ---
+                            """)
                         if DEFAULT_LAB_CONNECT:
                             httpBatteryPost(id_origin,battery,weight)
                         else:
