@@ -226,6 +226,10 @@ def check_wifi_thread():
                     for wl in wifiList:
                         wifiSsidList.append(wl[0].decode("utf-8"))
                     print(wifiSsidList)
+                    
+                    ### NEEDING_CONNECT_ESP32を更新
+                    NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
+                    
                     for k in wifiSsidList:
                         if k in NEEDING_CONNECT_ESP32:
                             print(f"[{k}]に接続",end="")
@@ -235,6 +239,7 @@ def check_wifi_thread():
                             wifi.connect(k)
                             for _ in range(10):
                                 if wifi.isconnected():
+                                    NEEDING_CONNECT_ESP32[k] = True
                                     p2.on()
                                     print(f"接続完了\n>>>>>>{wifi.ifconfig()}")
                                     sendIpAdress = wifi.ifconfig()[2]
