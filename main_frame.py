@@ -228,7 +228,11 @@ def check_wifi_thread():
                     print(wifiSsidList)
                     
                     ### NEEDING_CONNECT_ESP32を更新
+                    print("""
+                        NEEDING_CONNECT_ESP32の更新を行います
+                        """)
                     NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
+                    print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
                     
                     for k in wifiSsidList:
                         if k in NEEDING_CONNECT_ESP32:
