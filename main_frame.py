@@ -416,6 +416,7 @@ def processRecv():
             id_origin = ""
             temporaryRoute = ""
             toSending = ""
+            option = ""
             for fspd in fileDataProcessData:
                 if fspd == " " or fspd == "":
                         pass
@@ -443,6 +444,8 @@ def processRecv():
                             toSending = ESP32_ID
                     if proKey == "weight":
                         weight = proValue
+                    if proKey == "option":
+                        option = proValue
             
             if id_origin != "server":
                 if command_origin == "autowifi":
@@ -569,7 +572,8 @@ def processRecv():
                 elif command_origin == "reboot":
                     print(" ********** 再起動 ************")
                     sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                    tcp_broadcast_send(sendText)
+                    if option != "force":
+                        tcp_broadcast_send(sendText)
                     utime.sleep(2)
                     EXPERIMENT_ENABLE = False
                     p2.off()
