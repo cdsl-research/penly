@@ -607,8 +607,8 @@ def processRecv():
                     if toSending == ESP32_ID:
                         shutdownAP()
                     
-                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
-                    tcp_broadcast_send(sendText)
+                    # sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
+                    # tcp_broadcast_send(sendText)
             utime.sleep(0.5)
         except Exception as e:
             print(f"""
