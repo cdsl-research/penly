@@ -613,11 +613,12 @@ def processRecv():
                 elif command_origin == "stopAP" and lock_def_name != "stopAP":
                     lock_def_name = "stopAP"
                     rewrite_reboot_ap(False)
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
+                    tcp_broadcast_send(sendText)
                     if toSending == ESP32_ID:
+                        utime.sleep(3)
                         shutdownAP()
-                    
-                    # sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
-                    # tcp_broadcast_send(sendText)
+                        
             utime.sleep(0.5)
         except Exception as e:
             print(f"""
