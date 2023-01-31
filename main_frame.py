@@ -9,7 +9,7 @@ import urequests
 import ujson
 import random
 
-#WIFICHECK_THREADのWhile保持関数
+#WIFICHECK_THREADのWhile保持関数だお
 FLAG_CHECK_WIFI_ENABLE = True
 # 自身のAPのSSIDを保持
 AP_SSID = ""
