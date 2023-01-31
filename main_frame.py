@@ -415,6 +415,7 @@ def processRecv():
             command_origin = None
             id_origin = ""
             temporaryRoute = ""
+            toSending = ""
             for fspd in fileDataProcessData:
                 if fspd == " " or fspd == "":
                         pass
@@ -436,7 +437,10 @@ def processRecv():
                     if proKey == "battery":
                         battery = proValue
                     if proKey == "to":
-                        toSending = proValue
+                        toSendingOriginal = proValue
+                        proValue = proValue.split("+")
+                        if ESP32_ID in proValue:
+                            toSending = ESP32_ID
                     if proKey == "weight":
                         weight = proValue
             
@@ -582,18 +586,20 @@ def processRecv():
                     lock_def_name = "startAP"
                     rewrite_reboot_ap(True)
                     if toSending == ESP32_ID:
-                        activate_AP()
-                    else:
-                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
-                        tcp_broadcast_send(sendText)
+                        # activate_AP()
+                        ap.active(True)
+                        red.on()
+                    
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
+                    tcp_broadcast_send(sendText)
                 elif command_origin == "stopAP" and lock_def_name != "stopAP":
                     lock_def_name = "stopAP"
                     rewrite_reboot_ap(False)
                     if toSending == ESP32_ID:
                         shutdownAP()
-                    else:
-                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
-                        tcp_broadcast_send(sendText)
+                    
+                    sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSendingOriginal}"
+                    tcp_broadcast_send(sendText)
             utime.sleep(0.5)
         except Exception as e:
             print(f"""
