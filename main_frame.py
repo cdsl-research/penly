@@ -1158,12 +1158,13 @@ def writeFileResetBatteryAmount():
 LAMI_COST = 0
 def measureCurrent():
     global BATTERY
+    MEASURE_SLEEP_TIMER = 60
     count_timestamp = 0
     try:
         while EXPERIMENT_ENABLE:
             count = 0
             sumCurrent = 0
-            while count < 30 and EXPERIMENT_ENABLE:
+            while count < MEASURE_SLEEP_TIMER and EXPERIMENT_ENABLE:
                 battery = readFileBattery()
                 battery = float(battery)
                 ## デバッグが終わり次第コメントアウトを外す
@@ -1203,7 +1204,7 @@ def measureCurrent():
                 count += 1
                 utime.sleep(1)
                 
-            sumCurrent /= 30
+            sumCurrent /= MEASURE_SLEEP_TIMER
             
             print(f"---- Average power consumption during 60 seconds : {sumCurrent}[mA] Remaining battery power : {battery - sumCurrent}[mAh] ----")
             
