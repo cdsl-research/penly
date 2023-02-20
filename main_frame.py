@@ -564,19 +564,23 @@ def processRecv():
                     execfile("autowifi.py")
                 elif command_origin == "experiment_start":
                     rewrite_reboot_experiment(True)
-                    
-                    if not check_thread_experiment:
-                        print("\n- - - - 実験を開始します - - - - -")
-                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
-                        print("実験スタートを各ESP32に転送します")
-                        # all_translate_to_ESP32(recvEsp32Id,sendText)1
-                        tcp_broadcast_send(sendText)
-                        EXPERIMENT_ENABLE = True
+                    if toSending == "" or toSending == ESP32_ID:
                         if not check_thread_experiment:
-                            processCheckList("check_thread_experiment",True)
-                            _thread.start_new_thread(measureCurrent,())
+                            print("\n- - - - 実験を開始します - - - - -")
+                            sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}"
+                            print("実験スタートを各ESP32に転送します")
+                            # all_translate_to_ESP32(recvEsp32Id,sendText)1
+                            tcp_broadcast_send(sendText)
+                            EXPERIMENT_ENABLE = True
+                            if not check_thread_experiment:
+                                processCheckList("check_thread_experiment",True)
+                                _thread.start_new_thread(measureCurrent,())
+                        else:
+                            print("---** 既にEXPETIMENTIONは起動しています **---")
                     else:
-                        print("---** 既にEXPETIMENTIONは起動しています **---")
+                        print("実験スタートを各ESP32に転送します")
+                        tcp_broadcast_send(sendText)
+                        
                 elif command_origin == "experiment_stop":
                     rewrite_reboot_experiment(False)
                     if EXPERIMENT_ENABLE:
