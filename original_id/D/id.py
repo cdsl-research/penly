@@ -1,0 +1,7 @@
+ESP32_ID = "D"
+DEFAULT_LAB_CONNECT = True
+ENABLE_CONNECT_ESP32 = []
+
+
+# 接続対象
+# B,  A1
