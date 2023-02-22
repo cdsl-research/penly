@@ -33,6 +33,7 @@ SET_BATTERY = 10000
 EXPERIMENT_ENABLE = True
 # 送信できなかった(CURRENT_CONNECTTED_FROM_ESP32にあるのに)ESP32のリストアップ
 ERROR_CONNECT_ESP32 = {}
+NEEDING_CONNECT_ESP32 = {}
 # 切断前のスリープ秒
 WIFI_DISCONNECTION_TIME = 2
 # 再起動時, 実験を継続するか?
@@ -173,7 +174,9 @@ def update_needing_connect_esp32():
     print(wifiSsidList)
     ### NEEDING_CONNECT_ESP32を更新
     print("will update NEEDING_CONNECT_ESP32")
-    NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
+    for wl in wifiSsidList: # wifiSsidListの要素を一つずつ取り出す
+        if wl in ENABLE_CONNECT_ESP32 and wl not in NEEDING_CONNECT_ESP32:
+            NEEDING_CONNECT_ESP32[wl] = False
     print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
     return wifiSsidList
 
@@ -202,6 +205,7 @@ def esp_connect_wifi(ssid, timeout=20):
     if wifi.isconnected():
         p2.on()
         NEEDING_CONNECT_ESP32[ssid] = True
+        print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
         # 初期化
         CURRENT_CONNECT_TO_ESP32 = {}
         CURRENT_CONNECT_TO_ESP32[ssid] = True
