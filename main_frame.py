@@ -162,6 +162,14 @@ def connect_wifi(ssid, passkey, timeout=10):
         print(ssid, 'Connection failed!')
         return ''
 
+
+def update_needing_connect_esp32():
+    global NEEDING_CONNECT_ESP32
+    ### NEEDING_CONNECT_ESP32を更新
+    print("will update NEEDING_CONNECT_ESP32")
+    NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
+    print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
+
 # ESPに接続する場合(PASSなし)
 def esp_connect_wifi(ssid, timeout=20):
     global CURRENT_CONNECT_TO_ESP32
@@ -192,9 +200,13 @@ def esp_connect_wifi(ssid, timeout=20):
         CURRENT_CONNECT_TO_ESP32[ssid] = True
         print(ssid, 'Connected')
         print(wifi.ifconfig())
+        ### NEEDING_CONNECT_ESP32を更新
+        update_needing_connect_esp32()
         return wifi
     else:
         print(ssid, 'Connection failed!')
+        ### NEEDING_CONNECT_ESP32を更新
+        update_needing_connect_esp32()
         return ''
 
 def check_wifi_thread():
@@ -231,11 +243,7 @@ def check_wifi_thread():
                     print(wifiSsidList)
                     
                     ### NEEDING_CONNECT_ESP32を更新
-                    print("""
-                        NEEDING_CONNECT_ESP32の更新を行います
-                        """)
-                    NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
-                    print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
+                    update_needing_connect_esp32()
                     
                     for k in wifiSsidList:
                         if k in NEEDING_CONNECT_ESP32:
