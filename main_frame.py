@@ -165,10 +165,17 @@ def connect_wifi(ssid, passkey, timeout=10):
 
 def update_needing_connect_esp32():
     global NEEDING_CONNECT_ESP32
+    global wifi
+    wifiList = wifi.scan()
+    wifiSsidList = list()
+    for wl in wifiList:
+        wifiSsidList.append(wl[0].decode("utf-8"))
+    print(wifiSsidList)
     ### NEEDING_CONNECT_ESP32を更新
     print("will update NEEDING_CONNECT_ESP32")
     NEEDING_CONNECT_ESP32 = {wl: False for wl in wifiSsidList if wl in ENABLE_CONNECT_ESP32}
     print(f"NEEDING_CONNECT_ESP32 : {NEEDING_CONNECT_ESP32}")
+    return wifiSsidList
 
 # ESPに接続する場合(PASSなし)
 def esp_connect_wifi(ssid, timeout=20):
@@ -236,14 +243,10 @@ def check_wifi_thread():
                     print("--- Wi-Fi 切断完了 ---")
                     for k,v in CURRENT_CONNECT_TO_ESP32.items():
                         CURRENT_CONNECT_TO_ESP32[k] = False
-                    wifiList = wifi.scan()
-                    wifiSsidList = list()
-                    for wl in wifiList:
-                        wifiSsidList.append(wl[0].decode("utf-8"))
-                    print(wifiSsidList)
+                    
                     
                     ### NEEDING_CONNECT_ESP32を更新
-                    update_needing_connect_esp32()
+                    wifiSsidList = update_needing_connect_esp32()
                     
                     for k in wifiSsidList:
                         if k in NEEDING_CONNECT_ESP32:
