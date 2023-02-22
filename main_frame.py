@@ -306,10 +306,13 @@ def check_wifi_thread():
 # 繋げられない場合はESP32を探す
 def wifi_scan(CONTINUE_EXPETIMENT=False):
     if CONTINUE_EXPETIMENT == False:
-        print("\n --- {Wi-Fiスキャン & コネクションシークエンス} --- ")
+        print("\n --- {Wi-Fi scan | connection secense} --- ")
         global wifi
         global NEEDING_CONNECT_ESP32
         wifiList = wifi.scan()
+        if wifiList == []:
+            print("wifiList is EMPTY")
+            utime.sleep(3)
         wifiSsidList = list()
         for wl in wifiList:
             wifiSsidList.append(wl[0].decode("utf-8"))
