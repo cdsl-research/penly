@@ -596,6 +596,7 @@ def processRecv():
                         else:
                             print("---** 既にEXPETIMENTIONは起動しています **---")
                     else:
+                        sendText = f"id={AP_SSID}&command_origin={command_origin}&id_origin={id_origin}&to={toSending}"
                         print("実験スタートを各ESP32に転送します")
                         tcp_broadcast_send(sendText)
                         
